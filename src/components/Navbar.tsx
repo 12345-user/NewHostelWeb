@@ -48,12 +48,12 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`px-4 py-2 font-ui text-sm tracking-wide transition-all duration-200 border-2 border-transparent hover:border-black ${
+                className={`px-4 py-2 font-ui text-base lg:text-[1.05rem] tracking-wide transition-all duration-200 border-2 border-transparent hover:border-black ${
                   location.pathname === link.path
                     ? 'border-black bg-[#F6C347]'
                     : ''
@@ -65,7 +65,7 @@ export default function Navbar() {
             {isAdmin && (
               <Link
                 to="/admin"
-                className={`px-4 py-2 font-ui text-sm tracking-wide transition-all duration-200 border-2 border-transparent hover:border-black flex items-center gap-1 ${
+                className={`px-4 py-2 font-ui text-base lg:text-[1.05rem] tracking-wide transition-all duration-200 border-2 border-transparent hover:border-black flex items-center gap-1 ${
                   location.pathname === '/admin'
                     ? 'border-black bg-[#C52A32] text-white'
                     : ''
@@ -78,14 +78,14 @@ export default function Navbar() {
             {isAuthenticated ? (
               <button
                 onClick={logout}
-                className="ml-2 px-4 py-2 font-ui text-sm tracking-wide border-2 border-black hover:bg-black hover:text-white transition-all duration-200"
+                className="ml-2 px-5 py-2.5 font-ui text-base lg:text-[1.05rem] tracking-wide border-2 border-black hover:bg-black hover:text-white transition-all duration-200"
               >
                 退出
               </button>
             ) : (
               <Link
                 to="/login"
-                className="ml-2 px-4 py-2 font-ui text-sm tracking-wide border-2 border-black bg-black text-white hover:bg-transparent hover:text-black transition-all duration-200"
+                className="ml-2 px-5 py-2.5 font-ui text-base lg:text-[1.05rem] tracking-wide border-2 border-black bg-black text-white hover:bg-transparent hover:text-black transition-all duration-200"
               >
                 登录
               </Link>
@@ -95,7 +95,12 @@ export default function Navbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 border-2 border-black"
+            aria-label={isOpen ? '关闭菜单' : '打开菜单'}
+            className={`lg:hidden p-2 border-2 transition-colors duration-200 ${
+              scrolled
+                ? 'border-black text-black bg-transparent'
+                : 'border-white text-white bg-black/35 backdrop-blur-sm'
+            }`}
           >
             {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -104,15 +109,15 @@ export default function Navbar() {
 
       {/* Mobile Nav */}
       {isOpen && (
-        <div className="md:hidden bg-[#EBE5DB] border-b-2 border-black">
+        <div className="lg:hidden bg-[#F3EEE4] border-b-2 border-black shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
           <div className="px-4 py-2 space-y-1">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`block px-4 py-3 font-ui text-sm tracking-wide border-2 border-transparent hover:border-black ${
+                className={`block px-4 py-3 font-ui text-base tracking-wide text-black border-2 border-transparent hover:border-black hover:bg-[#E8E1D5] ${
                   location.pathname === link.path
-                    ? 'border-black bg-[#F6C347]'
+                    ? 'border-black bg-[#F6C347] font-semibold'
                     : ''
                 }`}
               >
@@ -122,7 +127,7 @@ export default function Navbar() {
             {isAdmin && (
               <Link
                 to="/admin"
-                className="block px-4 py-3 font-ui text-sm tracking-wide border-2 border-transparent hover:border-black"
+                className="block px-4 py-3 font-ui text-base tracking-wide text-black border-2 border-transparent hover:border-black hover:bg-[#E8E1D5]"
               >
                 管理后台
               </Link>
@@ -130,14 +135,14 @@ export default function Navbar() {
             {isAuthenticated ? (
               <button
                 onClick={logout}
-                className="block w-full text-left px-4 py-3 font-ui text-sm tracking-wide border-2 border-black hover:bg-black hover:text-white transition-all"
+                className="block w-full text-left px-4 py-3 font-ui text-base tracking-wide border-2 border-black text-black hover:bg-black hover:text-white transition-all"
               >
                 退出登录
               </button>
             ) : (
               <Link
                 to="/login"
-                className="block px-4 py-3 font-ui text-sm tracking-wide border-2 border-black bg-black text-white"
+                className="block px-4 py-3 font-ui text-base tracking-wide border-2 border-black bg-black text-white"
               >
                 登录
               </Link>

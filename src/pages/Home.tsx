@@ -117,25 +117,25 @@ export default function Home() {
 
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-white px-4">
           <div className="hero-title text-center">
-            <h1 className="font-heading text-5xl md:text-7xl lg:text-8xl mb-4 tracking-wider">
+            <h1 className="font-heading text-5xl md:text-7xl lg:text-8xl xl:text-9xl mb-4 tracking-wider">
               {heroSlides[currentSlide].title}
             </h1>
           </div>
           <div className="hero-subtitle text-center">
-            <p className="font-display text-xl md:text-2xl italic opacity-90">
+            <p className="font-display text-2xl md:text-3xl italic opacity-90">
               {heroSlides[currentSlide].subtitle}
             </p>
           </div>
           <div className="hero-cta mt-10 flex flex-col sm:flex-row gap-4">
             <Link
               to="/activities"
-              className="px-8 py-3 border-2 border-white text-white font-ui text-sm tracking-wider hover:bg-white hover:text-black transition-all duration-300"
+              className="px-10 py-4 border-2 border-white text-white font-ui text-base md:text-lg tracking-wider hover:bg-white hover:text-black transition-all duration-300"
             >
               探索活动
             </Link>
             <Link
               to="/people"
-              className="px-8 py-3 bg-[#C52A32] border-2 border-[#C52A32] text-white font-ui text-sm tracking-wider hover:bg-transparent hover:text-white transition-all duration-300"
+              className="px-10 py-4 bg-[#C52A32] border-2 border-[#C52A32] text-white font-ui text-base md:text-lg tracking-wider hover:bg-transparent hover:text-white transition-all duration-300"
             >
               认识我们
             </Link>

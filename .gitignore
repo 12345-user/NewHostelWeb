@@ -6,6 +6,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*.pid
+*.seed
 
 node_modules
 dist
@@ -26,6 +28,12 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
+.env.test
+# Keep examples committed
+!.env.example
+
 # Database
 *.db
 *.sqlite
@@ -36,6 +44,14 @@ db/migrations/*.sql
 # Build outputs
 dist/
 build/
+.cache/
+.vite/
+
 # Test coverage
 coverage/
 .nyc_output/
+
+# Runtime uploads and temp files
+uploads/
+tmp/
+temp/
