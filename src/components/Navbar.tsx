@@ -56,6 +56,8 @@ export default function Navbar() {
                 className={`px-4 py-2 font-ui text-base lg:text-[1.05rem] tracking-wide transition-all duration-200 border-2 border-transparent hover:border-black ${
                   location.pathname === link.path
                     ? 'border-black bg-[#F6C347]'
+                    : link.path !== '/'
+                      ? 'bg-[#D2BC7A]'
                     : ''
                 }`}
               >
