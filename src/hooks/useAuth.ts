@@ -1,4 +1,4 @@
-import { trpc } from "@/providers/trpc";
+import { trpc } from "@/providers/trpc-client";
 import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { LOGIN_PATH } from "@/const";
@@ -27,9 +27,9 @@ export function useAuth(options?: UseAuthOptions) {
   });
 
   const logoutMutation = trpc.auth.logout.useMutation({
-    onSuccess: async () => {
-      await utils.invalidate();
-      navigate(redirectPath);
+    onSuccess: () => {
+      void utils.invalidate();
+      window.location.assign(redirectPath);
     },
   });
 

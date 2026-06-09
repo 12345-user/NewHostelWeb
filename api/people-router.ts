@@ -1,11 +1,15 @@
 import { z } from "zod";
-import { createRouter, publicQuery, adminQuery } from "./middleware";
+import { createRouter, publicQuery, editorQuery, ownerQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { people } from "@db/schema";
 import { eq } from "drizzle-orm";
+import { env } from "./lib/env";
+import { demoPeople } from "./demo-data";
 
 export const peopleRouter = createRouter({
   list: publicQuery.query(async () => {
+    if (!env.databaseUrl) return demoPeople;
+
     const db = getDb();
     const results = await db.select().from(people).orderBy(people.name);
     return results.map((p) => ({
@@ -17,6 +21,10 @@ export const peopleRouter = createRouter({
   getById: publicQuery
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
+      if (!env.databaseUrl) {
+        return demoPeople.find((person) => person.id === input.id) ?? null;
+      }
+
       const db = getDb();
       const results = await db
         .select()
@@ -31,7 +39,7 @@ export const peopleRouter = createRouter({
       };
     }),
 
-  create: adminQuery
+  create: editorQuery
     .input(
       z.object({
         name: z.string().min(1),
@@ -43,6 +51,22 @@ export const peopleRouter = createRouter({
       })
     )
     .mutation(async ({ input }) => {
+      if (!env.databaseUrl) {
+        const id = Math.max(0, ...demoPeople.map((item) => item.id)) + 1;
+        demoPeople.unshift({
+          id,
+          name: input.name,
+          bio: input.bio ?? "",
+          skills: input.skills ?? "",
+          contact: input.contact ?? "",
+          avatar: input.avatar ?? "",
+          images: input.images ?? [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        return { id };
+      }
+
       const db = getDb();
       const result = await db.insert(people).values({
         ...input,
@@ -51,7 +75,7 @@ export const peopleRouter = createRouter({
       return { id: Number(result[0].insertId) };
     }),
 
-  update: adminQuery
+  update: editorQuery
     .input(
       z.object({
         id: z.number(),
@@ -64,6 +88,18 @@ export const peopleRouter = createRouter({
       })
     )
     .mutation(async ({ input }) => {
+      if (!env.databaseUrl) {
+        const person = demoPeople.find((item) => item.id === input.id);
+        if (person) {
+          Object.assign(person, {
+            ...input,
+            images: input.images ?? person.images,
+            updatedAt: new Date(),
+          });
+        }
+        return { success: true };
+      }
+
       const db = getDb();
       const { id, ...data } = input;
       await db
@@ -76,9 +112,15 @@ export const peopleRouter = createRouter({
       return { success: true };
     }),
 
-  delete: adminQuery
+  delete: ownerQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      if (!env.databaseUrl) {
+        const index = demoPeople.findIndex((item) => item.id === input.id);
+        if (index >= 0) demoPeople.splice(index, 1);
+        return { success: true };
+      }
+
       const db = getDb();
       await db.delete(people).where(eq(people.id, input.id));
       return { success: true };

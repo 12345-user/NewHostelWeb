@@ -1,11 +1,15 @@
 import { z } from "zod";
-import { createRouter, publicQuery, adminQuery } from "./middleware";
+import { createRouter, publicQuery, editorQuery, ownerQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { activities } from "@db/schema";
 import { eq } from "drizzle-orm";
+import { env } from "./lib/env";
+import { demoActivities } from "./demo-data";
 
 export const activityRouter = createRouter({
   list: publicQuery.query(async () => {
+    if (!env.databaseUrl) return demoActivities;
+
     const db = getDb();
     const results = await db.select().from(activities).orderBy(activities.date);
     return results.map((a) => ({
@@ -17,6 +21,10 @@ export const activityRouter = createRouter({
   getById: publicQuery
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
+      if (!env.databaseUrl) {
+        return demoActivities.find((activity) => activity.id === input.id) ?? null;
+      }
+
       const db = getDb();
       const results = await db
         .select()
@@ -31,7 +39,7 @@ export const activityRouter = createRouter({
       };
     }),
 
-  create: adminQuery
+  create: editorQuery
     .input(
       z.object({
         title: z.string().min(1),
@@ -43,6 +51,22 @@ export const activityRouter = createRouter({
       })
     )
     .mutation(async ({ input }) => {
+      if (!env.databaseUrl) {
+        const id = Math.max(0, ...demoActivities.map((item) => item.id)) + 1;
+        demoActivities.unshift({
+          id,
+          title: input.title,
+          date: input.date,
+          participants: input.participants ?? "",
+          summary: input.summary ?? "",
+          description: input.description ?? "",
+          images: input.images ?? [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        return { id };
+      }
+
       const db = getDb();
       const result = await db.insert(activities).values({
         ...input,
@@ -51,7 +75,7 @@ export const activityRouter = createRouter({
       return { id: Number(result[0].insertId) };
     }),
 
-  update: adminQuery
+  update: editorQuery
     .input(
       z.object({
         id: z.number(),
@@ -64,6 +88,18 @@ export const activityRouter = createRouter({
       })
     )
     .mutation(async ({ input }) => {
+      if (!env.databaseUrl) {
+        const activity = demoActivities.find((item) => item.id === input.id);
+        if (activity) {
+          Object.assign(activity, {
+            ...input,
+            images: input.images ?? activity.images,
+            updatedAt: new Date(),
+          });
+        }
+        return { success: true };
+      }
+
       const db = getDb();
       const { id, ...data } = input;
       await db
@@ -76,9 +112,15 @@ export const activityRouter = createRouter({
       return { success: true };
     }),
 
-  delete: adminQuery
+  delete: ownerQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      if (!env.databaseUrl) {
+        const index = demoActivities.findIndex((item) => item.id === input.id);
+        if (index >= 0) demoActivities.splice(index, 1);
+        return { success: true };
+      }
+
       const db = getDb();
       await db.delete(activities).where(eq(activities.id, input.id));
       return { success: true };

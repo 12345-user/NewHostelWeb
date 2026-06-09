@@ -1,24 +1,57 @@
-import { useState, useEffect } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash, ImagePlus, X, Shield, Calendar, Users, BookOpen } from 'lucide-react';
+import { Plus, Edit, Trash, ImagePlus, X, Shield, Calendar, Users, BookOpen, LockKeyhole } from 'lucide-react';
+
+type ActivityRecord = {
+  id: number;
+  title: string;
+  date: string;
+  participants?: string | null;
+  summary?: string | null;
+  description?: string | null;
+  images?: string[];
+};
+
+type PersonRecord = {
+  id: number;
+  name: string;
+  bio?: string | null;
+  skills?: string | null;
+  contact?: string | null;
+  avatar?: string | null;
+  images?: string[];
+};
+
+type ItemRecord = {
+  id: number;
+  name: string;
+  date?: string | null;
+  description?: string | null;
+  image?: string | null;
+};
+
+type PermissionProps = {
+  canDelete: boolean;
+};
 
 export default function Admin() {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth({ redirectOnUnauthenticated: true });
-  const isAdmin = user?.role === 'admin';
+  const canManage = user?.role === 'owner' || user?.role === 'admin';
+  const canDelete = user?.role === 'owner';
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated && !isAdmin) {
+    if (!authLoading && isAuthenticated && !canManage) {
       navigate('/');
     }
-  }, [authLoading, isAuthenticated, isAdmin, navigate]);
+  }, [authLoading, isAuthenticated, canManage, navigate]);
 
   if (authLoading) {
     return (
@@ -31,56 +64,58 @@ export default function Admin() {
     );
   }
 
-  if (!isAdmin) return null;
+  if (!canManage) return null;
 
   return (
     <div className="min-h-screen bg-[#EBE5DB] pt-20">
       <div className="border-b-2 border-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-center gap-3 mb-4">
-            <Shield className="w-8 h-8 text-[#C52A32]" />
-            <h1 className="font-heading text-4xl md:text-5xl">管理后台</h1>
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <Shield className="w-8 h-8 text-[#C52A32]" />
+                <h1 className="font-heading text-4xl md:text-5xl">管理后台</h1>
+              </div>
+              <p className="font-body text-base opacity-60">
+                管理活动、人员和物品内容。负责人可删除，管理员只能新增和编辑。
+              </p>
+            </div>
+            <div className="border-2 border-black bg-white px-4 py-3 font-ui text-sm">
+              <div className="font-semibold">{user?.name}</div>
+              <div className="mt-1 flex items-center gap-2 opacity-60">
+                <LockKeyhole className="w-4 h-4" />
+                {canDelete ? '负责人权限：新增、编辑、删除' : '管理员权限：新增、编辑'}
+              </div>
+            </div>
           </div>
-          <p className="font-body text-base opacity-60">
-            管理活动、人员与物品内容
-          </p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="activities" className="w-full">
-          <TabsList className="w-full justify-start bg-transparent border-2 border-black rounded-none p-0 h-auto mb-8">
-            <TabsTrigger
-              value="activities"
-              className="rounded-none border-r-2 border-black px-6 py-3 data-[state=active]:bg-[#F6C347] data-[state=active]:shadow-none font-ui text-sm"
-            >
+          <TabsList className="w-full justify-start bg-transparent border-2 border-black rounded-none p-0 h-auto mb-8 overflow-x-auto">
+            <TabsTrigger value="activities" className="rounded-none border-r-2 border-black px-6 py-3 data-[state=active]:bg-[#F6C347] data-[state=active]:shadow-none font-ui text-sm">
               <Calendar className="w-4 h-4 mr-2" />
               活动管理
             </TabsTrigger>
-            <TabsTrigger
-              value="people"
-              className="rounded-none border-r-2 border-black px-6 py-3 data-[state=active]:bg-[#0E92A9] data-[state=active]:text-white data-[state=active]:shadow-none font-ui text-sm"
-            >
+            <TabsTrigger value="people" className="rounded-none border-r-2 border-black px-6 py-3 data-[state=active]:bg-[#0E92A9] data-[state=active]:text-white data-[state=active]:shadow-none font-ui text-sm">
               <Users className="w-4 h-4 mr-2" />
               人员管理
             </TabsTrigger>
-            <TabsTrigger
-              value="items"
-              className="rounded-none px-6 py-3 data-[state=active]:bg-[#5D9484] data-[state=active]:text-white data-[state=active]:shadow-none font-ui text-sm"
-            >
+            <TabsTrigger value="items" className="rounded-none px-6 py-3 data-[state=active]:bg-[#5D9484] data-[state=active]:text-white data-[state=active]:shadow-none font-ui text-sm">
               <BookOpen className="w-4 h-4 mr-2" />
               物品管理
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="activities">
-            <ActivityManager />
+            <ActivityManager canDelete={canDelete} />
           </TabsContent>
           <TabsContent value="people">
-            <PeopleManager />
+            <PeopleManager canDelete={canDelete} />
           </TabsContent>
           <TabsContent value="items">
-            <ItemManager />
+            <ItemManager canDelete={canDelete} />
           </TabsContent>
         </Tabs>
       </div>
@@ -88,29 +123,15 @@ export default function Admin() {
   );
 }
 
-function ActivityManager() {
+function ActivityManager({ canDelete }: PermissionProps) {
   const utils = trpc.useUtils();
   const { data: activities, isLoading } = trpc.activity.list.useQuery();
-  const createMutation = trpc.activity.create.useMutation({
-    onSuccess: () => utils.activity.list.invalidate(),
-  });
-  const updateMutation = trpc.activity.update.useMutation({
-    onSuccess: () => utils.activity.list.invalidate(),
-  });
-  const deleteMutation = trpc.activity.delete.useMutation({
-    onSuccess: () => utils.activity.list.invalidate(),
-  });
-
+  const createMutation = trpc.activity.create.useMutation({ onSuccess: () => utils.activity.list.invalidate() });
+  const updateMutation = trpc.activity.update.useMutation({ onSuccess: () => utils.activity.list.invalidate() });
+  const deleteMutation = trpc.activity.delete.useMutation({ onSuccess: () => utils.activity.list.invalidate() });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    date: '',
-    participants: '',
-    summary: '',
-    description: '',
-    images: [] as string[],
-  });
+  const [formData, setFormData] = useState({ title: '', date: '', participants: '', summary: '', description: '', images: [] as string[] });
 
   const resetForm = () => {
     setFormData({ title: '', date: '', participants: '', summary: '', description: '', images: [] });
@@ -118,16 +139,13 @@ function ActivityManager() {
   };
 
   const handleSubmit = () => {
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, ...formData });
-    } else {
-      createMutation.mutate(formData);
-    }
+    if (editingId) updateMutation.mutate({ id: editingId, ...formData });
+    else createMutation.mutate(formData);
     setIsDialogOpen(false);
     resetForm();
   };
 
-  const handleEdit = (activity: any) => {
+  const handleEdit = (activity: ActivityRecord) => {
     setFormData({
       title: activity.title,
       date: activity.date,
@@ -141,201 +159,64 @@ function ActivityManager() {
   };
 
   const handleDelete = (id: number) => {
-    if (confirm('确定要删除这个活动吗？')) {
-      deleteMutation.mutate({ id });
-    }
+    if (canDelete && confirm('确定要删除这个活动吗？')) deleteMutation.mutate({ id });
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
     if (!files) return;
-    for (const file of files) {
-      const formData = new FormData();
-      formData.append('file', file);
-      // For now, use the file name as a reference. In production, you'd upload to server.
+    Array.from(files).forEach((file) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        setFormData(prev => ({
-          ...prev,
-          images: [...prev.images, reader.result as string],
-        }));
-      };
+      reader.onload = () => setFormData((prev) => ({ ...prev, images: [...prev.images, reader.result as string] }));
       reader.readAsDataURL(file);
-    }
+    });
   };
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="font-heading text-2xl">活动列表</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={resetForm}
-              className="bg-[#C52A32] hover:bg-[#a8222a] text-white border-2 border-black rounded-none font-ui"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              新增活动
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl bg-[#EBE5DB] border-2 border-black rounded-none">
-            <DialogHeader>
-              <DialogTitle className="font-heading text-xl">
-                {editingId ? '编辑活动' : '新增活动'}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <div>
-                <label className="font-ui text-sm mb-1 block">标题</label>
-                <Input
-                  value={formData.title}
-                  onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  className="border-2 border-black rounded-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="font-ui text-sm mb-1 block">日期</label>
-                <Input
-                  type="date"
-                  value={formData.date}
-                  onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  className="border-2 border-black rounded-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="font-ui text-sm mb-1 block">参与人员</label>
-                <Input
-                  value={formData.participants}
-                  onChange={e => setFormData(prev => ({ ...prev, participants: e.target.value }))}
-                  className="border-2 border-black rounded-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="font-ui text-sm mb-1 block">摘要</label>
-                <Input
-                  value={formData.summary}
-                  onChange={e => setFormData(prev => ({ ...prev, summary: e.target.value }))}
-                  className="border-2 border-black rounded-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="font-ui text-sm mb-1 block">详细描述</label>
-                <Textarea
-                  value={formData.description}
-                  onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={4}
-                  className="border-2 border-black rounded-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="font-ui text-sm mb-1 block">图片</label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {formData.images.map((img, i) => (
-                    <div key={i} className="relative w-20 h-20 border-2 border-black">
-                      <img src={img} alt="" className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => setFormData(prev => ({
-                          ...prev,
-                          images: prev.images.filter((_, idx) => idx !== i),
-                        }))}
-                        className="absolute -top-2 -right-2 w-5 h-5 bg-[#C52A32] text-white rounded-full flex items-center justify-center"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-all font-ui text-sm">
-                  <ImagePlus className="w-4 h-4" />
-                  添加图片
-                  <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
-                </label>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <Button
-                  onClick={handleSubmit}
-                  className="bg-black text-white hover:bg-[#C52A32] border-2 border-black rounded-none font-ui"
-                >
-                  {editingId ? '保存修改' : '创建活动'}
-                </Button>
-                <Button
-                  onClick={() => { setIsDialogOpen(false); resetForm(); }}
-                  variant="outline"
-                  className="border-2 border-black rounded-none font-ui"
-                >
-                  取消
-                </Button>
-              </div>
+      <ManagerHeader title="活动列表" actionLabel="新增活动" color="bg-[#C52A32]" onCreate={() => { resetForm(); setIsDialogOpen(true); }} />
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger className="hidden" />
+        <DialogContent className="max-w-2xl bg-[#EBE5DB] border-2 border-black rounded-none">
+          <DialogHeader><DialogTitle className="font-heading text-xl">{editingId ? '编辑活动' : '新增活动'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-4">
+            <Field label="标题"><Input value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} className="border-2 border-black rounded-none bg-white" /></Field>
+            <Field label="日期"><Input type="date" value={formData.date} onChange={(e) => setFormData((p) => ({ ...p, date: e.target.value }))} className="border-2 border-black rounded-none bg-white" /></Field>
+            <Field label="参与人员"><Input value={formData.participants} onChange={(e) => setFormData((p) => ({ ...p, participants: e.target.value }))} className="border-2 border-black rounded-none bg-white" /></Field>
+            <Field label="摘要"><Input value={formData.summary} onChange={(e) => setFormData((p) => ({ ...p, summary: e.target.value }))} className="border-2 border-black rounded-none bg-white" /></Field>
+            <Field label="详细描述"><Textarea value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} rows={4} className="border-2 border-black rounded-none bg-white" /></Field>
+            <ImageList images={formData.images} onRemove={(index) => setFormData((p) => ({ ...p, images: p.images.filter((_, i) => i !== index) }))} />
+            <UploadButton multiple onChange={handleImageUpload} label="添加图片" />
+            <DialogActions editing={!!editingId} createText="创建活动" updateText="保存修改" onSubmit={handleSubmit} onCancel={() => { setIsDialogOpen(false); resetForm(); }} />
+          </div>
+        </DialogContent>
+      </Dialog>
+      <RecordList isLoading={isLoading}>
+        {activities?.map((activity) => (
+          <div key={activity.id} className="border-2 border-black bg-white p-4 flex items-start gap-4">
+            {activity.images?.[0] && <img src={activity.images[0]} alt={activity.title} className="w-24 h-24 object-cover border border-black" />}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-heading text-lg">{activity.title}</h3>
+              <p className="font-body text-sm opacity-60">{activity.date} / {activity.participants}</p>
+              <p className="font-body text-sm opacity-50 truncate">{activity.summary}</p>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {isLoading ? (
-        <div className="animate-pulse space-y-4">
-          {[1, 2, 3].map(i => <div key={i} className="h-20 bg-black/10" />)}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {activities?.map(activity => (
-            <div key={activity.id} className="border-2 border-black bg-white p-4 flex items-start gap-4">
-              {activity.images?.[0] && (
-                <img src={activity.images[0]} alt={activity.title} className="w-24 h-24 object-cover border border-black" />
-              )}
-              <div className="flex-1 min-w-0">
-                <h3 className="font-heading text-lg">{activity.title}</h3>
-                <p className="font-body text-sm opacity-60">{activity.date} · {activity.participants}</p>
-                <p className="font-body text-sm opacity-50 truncate">{activity.summary}</p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => handleEdit(activity)}
-                  variant="outline"
-                  size="sm"
-                  className="border-2 border-black rounded-none"
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button
-                  onClick={() => handleDelete(activity.id)}
-                  variant="outline"
-                  size="sm"
-                  className="border-2 border-[#C52A32] text-[#C52A32] hover:bg-[#C52A32] hover:text-white rounded-none"
-                >
-                  <Trash className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            <ActionButtons canDelete={canDelete} onEdit={() => handleEdit(activity)} onDelete={() => handleDelete(activity.id)} />
+          </div>
+        ))}
+      </RecordList>
     </div>
   );
 }
 
-function PeopleManager() {
+function PeopleManager({ canDelete }: PermissionProps) {
   const utils = trpc.useUtils();
   const { data: people, isLoading } = trpc.people.list.useQuery();
-  const createMutation = trpc.people.create.useMutation({
-    onSuccess: () => utils.people.list.invalidate(),
-  });
-  const updateMutation = trpc.people.update.useMutation({
-    onSuccess: () => utils.people.list.invalidate(),
-  });
-  const deleteMutation = trpc.people.delete.useMutation({
-    onSuccess: () => utils.people.list.invalidate(),
-  });
-
+  const createMutation = trpc.people.create.useMutation({ onSuccess: () => utils.people.list.invalidate() });
+  const updateMutation = trpc.people.update.useMutation({ onSuccess: () => utils.people.list.invalidate() });
+  const deleteMutation = trpc.people.delete.useMutation({ onSuccess: () => utils.people.list.invalidate() });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    bio: '',
-    skills: '',
-    contact: '',
-    avatar: '',
-    images: [] as string[],
-  });
+  const [formData, setFormData] = useState({ name: '', bio: '', skills: '', contact: '', avatar: '', images: [] as string[] });
 
   const resetForm = () => {
     setFormData({ name: '', bio: '', skills: '', contact: '', avatar: '', images: [] });
@@ -343,198 +224,74 @@ function PeopleManager() {
   };
 
   const handleSubmit = () => {
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, ...formData });
-    } else {
-      createMutation.mutate(formData);
-    }
+    if (editingId) updateMutation.mutate({ id: editingId, ...formData });
+    else createMutation.mutate(formData);
     setIsDialogOpen(false);
     resetForm();
   };
 
-  const handleEdit = (person: any) => {
-    setFormData({
-      name: person.name,
-      bio: person.bio || '',
-      skills: person.skills || '',
-      contact: person.contact || '',
-      avatar: person.avatar || '',
-      images: person.images || [],
-    });
+  const handleEdit = (person: PersonRecord) => {
+    setFormData({ name: person.name, bio: person.bio || '', skills: person.skills || '', contact: person.contact || '', avatar: person.avatar || '', images: person.images || [] });
     setEditingId(person.id);
     setIsDialogOpen(true);
   };
 
   const handleDelete = (id: number) => {
-    if (confirm('确定要删除这个人员吗？')) {
-      deleteMutation.mutate({ id });
-    }
+    if (canDelete && confirm('确定要删除这个人员吗？')) deleteMutation.mutate({ id });
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'images') => {
-    const file = e.target.files?.[0];
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
-      if (field === 'avatar') {
-        setFormData(prev => ({ ...prev, avatar: reader.result as string }));
-      } else {
-        setFormData(prev => ({ ...prev, images: [...prev.images, reader.result as string] }));
-      }
-    };
+    reader.onload = () => setFormData((prev) => ({ ...prev, avatar: reader.result as string }));
     reader.readAsDataURL(file);
   };
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="font-heading text-2xl">人员列表</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={resetForm}
-              className="bg-[#0E92A9] hover:bg-[#0b7a8d] text-white border-2 border-black rounded-none font-ui"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              新增人员
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl bg-[#EBE5DB] border-2 border-black rounded-none">
-            <DialogHeader>
-              <DialogTitle className="font-heading text-xl">
-                {editingId ? '编辑人员' : '新增人员'}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <div>
-                <label className="font-ui text-sm mb-1 block">姓名</label>
-                <Input
-                  value={formData.name}
-                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="border-2 border-black rounded-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="font-ui text-sm mb-1 block">简介</label>
-                <Textarea
-                  value={formData.bio}
-                  onChange={e => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-                  rows={3}
-                  className="border-2 border-black rounded-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="font-ui text-sm mb-1 block">技能（逗号分隔）</label>
-                <Input
-                  value={formData.skills}
-                  onChange={e => setFormData(prev => ({ ...prev, skills: e.target.value }))}
-                  className="border-2 border-black rounded-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="font-ui text-sm mb-1 block">联系方式</label>
-                <Input
-                  value={formData.contact}
-                  onChange={e => setFormData(prev => ({ ...prev, contact: e.target.value }))}
-                  className="border-2 border-black rounded-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="font-ui text-sm mb-1 block">头像</label>
-                <div className="flex items-center gap-4">
-                  {formData.avatar && (
-                    <img src={formData.avatar} alt="Avatar" className="w-16 h-16 object-cover border-2 border-black" />
-                  )}
-                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-all font-ui text-sm">
-                    <ImagePlus className="w-4 h-4" />
-                    上传头像
-                    <input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'avatar')} className="hidden" />
-                  </label>
-                </div>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <Button
-                  onClick={handleSubmit}
-                  className="bg-black text-white hover:bg-[#0E92A9] border-2 border-black rounded-none font-ui"
-                >
-                  {editingId ? '保存修改' : '创建人员'}
-                </Button>
-                <Button
-                  onClick={() => { setIsDialogOpen(false); resetForm(); }}
-                  variant="outline"
-                  className="border-2 border-black rounded-none font-ui"
-                >
-                  取消
-                </Button>
-              </div>
+      <ManagerHeader title="人员列表" actionLabel="新增人员" color="bg-[#0E92A9]" onCreate={() => { resetForm(); setIsDialogOpen(true); }} />
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger className="hidden" />
+        <DialogContent className="max-w-2xl bg-[#EBE5DB] border-2 border-black rounded-none">
+          <DialogHeader><DialogTitle className="font-heading text-xl">{editingId ? '编辑人员' : '新增人员'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-4">
+            <Field label="姓名"><Input value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} className="border-2 border-black rounded-none bg-white" /></Field>
+            <Field label="简介"><Textarea value={formData.bio} onChange={(e) => setFormData((p) => ({ ...p, bio: e.target.value }))} rows={3} className="border-2 border-black rounded-none bg-white" /></Field>
+            <Field label="技能/标签（逗号分隔）"><Input value={formData.skills} onChange={(e) => setFormData((p) => ({ ...p, skills: e.target.value }))} className="border-2 border-black rounded-none bg-white" /></Field>
+            <Field label="联系方式"><Input value={formData.contact} onChange={(e) => setFormData((p) => ({ ...p, contact: e.target.value }))} className="border-2 border-black rounded-none bg-white" /></Field>
+            {formData.avatar && <img src={formData.avatar} alt="头像预览" className="w-20 h-20 object-cover border-2 border-black" />}
+            <UploadButton onChange={handleAvatarUpload} label="上传头像" />
+            <DialogActions editing={!!editingId} createText="创建人员" updateText="保存修改" onSubmit={handleSubmit} onCancel={() => { setIsDialogOpen(false); resetForm(); }} />
+          </div>
+        </DialogContent>
+      </Dialog>
+      <RecordList isLoading={isLoading}>
+        {people?.map((person) => (
+          <div key={person.id} className="border-2 border-black bg-white p-4 flex items-start gap-4">
+            {person.avatar && <img src={person.avatar} alt={person.name} className="w-16 h-16 object-cover border border-black" />}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-heading text-lg">{person.name}</h3>
+              <p className="font-body text-sm opacity-60 line-clamp-1">{person.bio}</p>
+              <p className="font-body text-xs opacity-40">{person.skills}</p>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {isLoading ? (
-        <div className="animate-pulse space-y-4">
-          {[1, 2, 3].map(i => <div key={i} className="h-20 bg-black/10" />)}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {people?.map(person => (
-            <div key={person.id} className="border-2 border-black bg-white p-4 flex items-start gap-4">
-              {person.avatar && (
-                <img src={person.avatar} alt={person.name} className="w-16 h-16 object-cover border border-black" />
-              )}
-              <div className="flex-1 min-w-0">
-                <h3 className="font-heading text-lg">{person.name}</h3>
-                <p className="font-body text-sm opacity-60 line-clamp-1">{person.bio}</p>
-                <p className="font-body text-xs opacity-40">{person.skills}</p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => handleEdit(person)}
-                  variant="outline"
-                  size="sm"
-                  className="border-2 border-black rounded-none"
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button
-                  onClick={() => handleDelete(person.id)}
-                  variant="outline"
-                  size="sm"
-                  className="border-2 border-[#C52A32] text-[#C52A32] hover:bg-[#C52A32] hover:text-white rounded-none"
-                >
-                  <Trash className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            <ActionButtons canDelete={canDelete} onEdit={() => handleEdit(person)} onDelete={() => handleDelete(person.id)} />
+          </div>
+        ))}
+      </RecordList>
     </div>
   );
 }
 
-function ItemManager() {
+function ItemManager({ canDelete }: PermissionProps) {
   const utils = trpc.useUtils();
   const { data: items, isLoading } = trpc.item.list.useQuery();
-  const createMutation = trpc.item.create.useMutation({
-    onSuccess: () => utils.item.list.invalidate(),
-  });
-  const updateMutation = trpc.item.update.useMutation({
-    onSuccess: () => utils.item.list.invalidate(),
-  });
-  const deleteMutation = trpc.item.delete.useMutation({
-    onSuccess: () => utils.item.list.invalidate(),
-  });
-
+  const createMutation = trpc.item.create.useMutation({ onSuccess: () => utils.item.list.invalidate() });
+  const updateMutation = trpc.item.update.useMutation({ onSuccess: () => utils.item.list.invalidate() });
+  const deleteMutation = trpc.item.delete.useMutation({ onSuccess: () => utils.item.list.invalidate() });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    date: '',
-    description: '',
-    image: '',
-  });
+  const [formData, setFormData] = useState({ name: '', date: '', description: '', image: '' });
 
   const resetForm = () => {
     setFormData({ name: '', date: '', description: '', image: '' });
@@ -542,159 +299,146 @@ function ItemManager() {
   };
 
   const handleSubmit = () => {
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, ...formData });
-    } else {
-      createMutation.mutate(formData);
-    }
+    if (editingId) updateMutation.mutate({ id: editingId, ...formData });
+    else createMutation.mutate(formData);
     setIsDialogOpen(false);
     resetForm();
   };
 
-  const handleEdit = (item: any) => {
-    setFormData({
-      name: item.name,
-      date: item.date || '',
-      description: item.description || '',
-      image: item.image || '',
-    });
+  const handleEdit = (item: ItemRecord) => {
+    setFormData({ name: item.name, date: item.date || '', description: item.description || '', image: item.image || '' });
     setEditingId(item.id);
     setIsDialogOpen(true);
   };
 
   const handleDelete = (id: number) => {
-    if (confirm('确定要删除这个物品吗？')) {
-      deleteMutation.mutate({ id });
-    }
+    if (canDelete && confirm('确定要删除这个物品吗？')) deleteMutation.mutate({ id });
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
-      setFormData(prev => ({ ...prev, image: reader.result as string }));
-    };
+    reader.onload = () => setFormData((prev) => ({ ...prev, image: reader.result as string }));
     reader.readAsDataURL(file);
   };
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="font-heading text-2xl">物品列表</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={resetForm}
-              className="bg-[#5D9484] hover:bg-[#4a7869] text-white border-2 border-black rounded-none font-ui"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              新增物品
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl bg-[#EBE5DB] border-2 border-black rounded-none">
-            <DialogHeader>
-              <DialogTitle className="font-heading text-xl">
-                {editingId ? '编辑物品' : '新增物品'}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <div>
-                <label className="font-ui text-sm mb-1 block">名称</label>
-                <Input
-                  value={formData.name}
-                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="border-2 border-black rounded-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="font-ui text-sm mb-1 block">日期</label>
-                <Input
-                  type="date"
-                  value={formData.date}
-                  onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  className="border-2 border-black rounded-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="font-ui text-sm mb-1 block">介绍</label>
-                <Textarea
-                  value={formData.description}
-                  onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={4}
-                  className="border-2 border-black rounded-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="font-ui text-sm mb-1 block">图片</label>
-                <div className="flex items-center gap-4">
-                  {formData.image && (
-                    <img src={formData.image} alt="Item" className="w-20 h-20 object-cover border-2 border-black" />
-                  )}
-                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-all font-ui text-sm">
-                    <ImagePlus className="w-4 h-4" />
-                    上传图片
-                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                  </label>
-                </div>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <Button
-                  onClick={handleSubmit}
-                  className="bg-black text-white hover:bg-[#5D9484] border-2 border-black rounded-none font-ui"
-                >
-                  {editingId ? '保存修改' : '创建物品'}
-                </Button>
-                <Button
-                  onClick={() => { setIsDialogOpen(false); resetForm(); }}
-                  variant="outline"
-                  className="border-2 border-black rounded-none font-ui"
-                >
-                  取消
-                </Button>
-              </div>
+      <ManagerHeader title="物品列表" actionLabel="新增物品" color="bg-[#5D9484]" onCreate={() => { resetForm(); setIsDialogOpen(true); }} />
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger className="hidden" />
+        <DialogContent className="max-w-2xl bg-[#EBE5DB] border-2 border-black rounded-none">
+          <DialogHeader><DialogTitle className="font-heading text-xl">{editingId ? '编辑物品' : '新增物品'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-4">
+            <Field label="名称"><Input value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} className="border-2 border-black rounded-none bg-white" /></Field>
+            <Field label="日期"><Input type="date" value={formData.date} onChange={(e) => setFormData((p) => ({ ...p, date: e.target.value }))} className="border-2 border-black rounded-none bg-white" /></Field>
+            <Field label="介绍"><Textarea value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} rows={4} className="border-2 border-black rounded-none bg-white" /></Field>
+            {formData.image && <img src={formData.image} alt="物品预览" className="w-20 h-20 object-cover border-2 border-black" />}
+            <UploadButton onChange={handleImageUpload} label="上传图片" />
+            <DialogActions editing={!!editingId} createText="创建物品" updateText="保存修改" onSubmit={handleSubmit} onCancel={() => { setIsDialogOpen(false); resetForm(); }} />
+          </div>
+        </DialogContent>
+      </Dialog>
+      <RecordList isLoading={isLoading}>
+        {items?.map((item) => (
+          <div key={item.id} className="border-2 border-black bg-white p-4 flex items-start gap-4">
+            {item.image && <img src={item.image} alt={item.name} className="w-20 h-20 object-cover border border-black" />}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-heading text-lg">{item.name}</h3>
+              <p className="font-body text-sm opacity-60">{item.date}</p>
+              <p className="font-body text-sm opacity-50 line-clamp-2">{item.description}</p>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            <ActionButtons canDelete={canDelete} onEdit={() => handleEdit(item)} onDelete={() => handleDelete(item.id)} />
+          </div>
+        ))}
+      </RecordList>
+    </div>
+  );
+}
 
-      {isLoading ? (
-        <div className="animate-pulse space-y-4">
-          {[1, 2, 3].map(i => <div key={i} className="h-20 bg-black/10" />)}
+function ManagerHeader({ title, actionLabel, color, onCreate }: { title: string; actionLabel: string; color: string; onCreate: () => void }) {
+  return (
+    <div className="flex justify-between items-center mb-6">
+      <h2 className="font-heading text-2xl">{title}</h2>
+      <Button onClick={onCreate} className={`${color} hover:brightness-90 text-white border-2 border-black rounded-none font-ui`}>
+        <Plus className="w-4 h-4 mr-2" />
+        {actionLabel}
+      </Button>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block">
+      <span className="font-ui text-sm mb-1 block">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function UploadButton({ label, multiple, onChange }: { label: string; multiple?: boolean; onChange: (event: React.ChangeEvent<HTMLInputElement>) => void }) {
+  return (
+    <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-all font-ui text-sm">
+      <ImagePlus className="w-4 h-4" />
+      {label}
+      <input type="file" accept="image/*" multiple={multiple} onChange={onChange} className="hidden" />
+    </label>
+  );
+}
+
+function ImageList({ images, onRemove }: { images: string[]; onRemove: (index: number) => void }) {
+  if (images.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {images.map((img, index) => (
+        <div key={`${img}-${index}`} className="relative w-20 h-20 border-2 border-black">
+          <img src={img} alt="" className="w-full h-full object-cover" />
+          <button onClick={() => onRemove(index)} className="absolute -top-2 -right-2 w-5 h-5 bg-[#C52A32] text-white rounded-full flex items-center justify-center">
+            <X className="w-3 h-3" />
+          </button>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {items?.map(item => (
-            <div key={item.id} className="border-2 border-black bg-white p-4 flex items-start gap-4">
-              {item.image && (
-                <img src={item.image} alt={item.name} className="w-20 h-20 object-cover border border-black" />
-              )}
-              <div className="flex-1 min-w-0">
-                <h3 className="font-heading text-lg">{item.name}</h3>
-                <p className="font-body text-sm opacity-60">{item.date}</p>
-                <p className="font-body text-sm opacity-50 line-clamp-2">{item.description}</p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => handleEdit(item)}
-                  variant="outline"
-                  size="sm"
-                  className="border-2 border-black rounded-none"
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button
-                  onClick={() => handleDelete(item.id)}
-                  variant="outline"
-                  size="sm"
-                  className="border-2 border-[#C52A32] text-[#C52A32] hover:bg-[#C52A32] hover:text-white rounded-none"
-                >
-                  <Trash className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
+      ))}
+    </div>
+  );
+}
+
+function DialogActions({ editing, createText, updateText, onSubmit, onCancel }: { editing: boolean; createText: string; updateText: string; onSubmit: () => void; onCancel: () => void }) {
+  return (
+    <div className="flex gap-3 pt-4">
+      <Button onClick={onSubmit} className="bg-black text-white hover:bg-[#C52A32] border-2 border-black rounded-none font-ui">
+        {editing ? updateText : createText}
+      </Button>
+      <Button onClick={onCancel} variant="outline" className="border-2 border-black rounded-none font-ui">
+        取消
+      </Button>
+    </div>
+  );
+}
+
+function RecordList({ isLoading, children }: { isLoading: boolean; children: ReactNode }) {
+  if (isLoading) {
+    return (
+      <div className="animate-pulse space-y-4">
+        {[1, 2, 3].map((item) => <div key={item} className="h-20 bg-black/10" />)}
+      </div>
+    );
+  }
+
+  return <div className="space-y-4">{children}</div>;
+}
+
+function ActionButtons({ canDelete, onEdit, onDelete }: { canDelete: boolean; onEdit: () => void; onDelete: () => void }) {
+  return (
+    <div className="flex gap-2">
+      <Button onClick={onEdit} variant="outline" size="sm" className="border-2 border-black rounded-none">
+        <Edit className="w-4 h-4" />
+      </Button>
+      {canDelete && (
+        <Button onClick={onDelete} variant="outline" size="sm" className="border-2 border-[#C52A32] text-[#C52A32] hover:bg-[#C52A32] hover:text-white rounded-none">
+          <Trash className="w-4 h-4" />
+        </Button>
       )}
     </div>
   );

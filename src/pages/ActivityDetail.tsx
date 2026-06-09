@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import { Calendar, Users, ArrowLeft, ImageIcon } from 'lucide-react';
 import gsap from 'gsap';
 

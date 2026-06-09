@@ -1,11 +1,15 @@
 import { z } from "zod";
-import { createRouter, publicQuery, adminQuery } from "./middleware";
+import { createRouter, publicQuery, editorQuery, ownerQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { items } from "@db/schema";
 import { eq } from "drizzle-orm";
+import { env } from "./lib/env";
+import { demoItems } from "./demo-data";
 
 export const itemRouter = createRouter({
   list: publicQuery.query(async () => {
+    if (!env.databaseUrl) return demoItems;
+
     const db = getDb();
     return db.select().from(items).orderBy(items.createdAt);
   }),
@@ -13,6 +17,10 @@ export const itemRouter = createRouter({
   getById: publicQuery
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
+      if (!env.databaseUrl) {
+        return demoItems.find((item) => item.id === input.id) ?? null;
+      }
+
       const db = getDb();
       const results = await db
         .select()
@@ -22,7 +30,7 @@ export const itemRouter = createRouter({
       return results.length > 0 ? results[0] : null;
     }),
 
-  create: adminQuery
+  create: editorQuery
     .input(
       z.object({
         name: z.string().min(1),
@@ -32,12 +40,26 @@ export const itemRouter = createRouter({
       })
     )
     .mutation(async ({ input }) => {
+      if (!env.databaseUrl) {
+        const id = Math.max(0, ...demoItems.map((item) => item.id)) + 1;
+        demoItems.unshift({
+          id,
+          name: input.name,
+          date: input.date ?? "",
+          description: input.description ?? "",
+          image: input.image ?? "",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        return { id };
+      }
+
       const db = getDb();
       const result = await db.insert(items).values(input);
       return { id: Number(result[0].insertId) };
     }),
 
-  update: adminQuery
+  update: editorQuery
     .input(
       z.object({
         id: z.number(),
@@ -48,15 +70,32 @@ export const itemRouter = createRouter({
       })
     )
     .mutation(async ({ input }) => {
+      if (!env.databaseUrl) {
+        const item = demoItems.find((entry) => entry.id === input.id);
+        if (item) {
+          Object.assign(item, {
+            ...input,
+            updatedAt: new Date(),
+          });
+        }
+        return { success: true };
+      }
+
       const db = getDb();
       const { id, ...data } = input;
       await db.update(items).set(data).where(eq(items.id, id));
       return { success: true };
     }),
 
-  delete: adminQuery
+  delete: ownerQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      if (!env.databaseUrl) {
+        const index = demoItems.findIndex((item) => item.id === input.id);
+        if (index >= 0) demoItems.splice(index, 1);
+        return { success: true };
+      }
+
       const db = getDb();
       await db.delete(items).where(eq(items.id, input.id));
       return { success: true };
