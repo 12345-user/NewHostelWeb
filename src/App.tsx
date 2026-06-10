@@ -4,6 +4,7 @@ import Activities from './pages/Activities'
 import ActivityDetail from './pages/ActivityDetail'
 import People from './pages/People'
 import Items from './pages/Items'
+import AboutDetail from './pages/AboutDetail'
 import Admin from './pages/Admin'
 import Login from "./pages/Login"
 import NotFound from "./pages/NotFound"
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/activities/:id" element={<ActivityDetail />} />
           <Route path="/people" element={<People />} />
           <Route path="/items" element={<Items />} />
+          <Route path="/about" element={<AboutDetail />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/login" element={<Login />} />
           <Route path="*" element={<NotFound />} />

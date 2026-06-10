@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { trpc } from '@/providers/trpc-client';
-import { ArrowRight, BookOpen, Calendar, MapPin, Sparkles, Users } from 'lucide-react';
+import { ArrowRight, BookOpen, Calendar, Compass, MapPin, Sparkles, Users } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -54,36 +54,37 @@ export default function Home() {
   const totalItems = items?.length || 0;
   const totalActivities = activities?.length || 0;
   const latestActivity = activities?.[0];
+  const latestItem = items?.[0];
 
   const stats = [
     {
-      to: '/activities',
       value: totalActivities,
       unit: '场活动',
-      note: latestActivity ? `最近：${latestActivity.title}` : '等待第一场相聚',
+      label: '运营内容',
+      note: latestActivity ? `最近更新：${latestActivity.title}` : '等待第一场相聚',
       className: 'bg-[#D7B861] text-[#20160C]',
       icon: Calendar,
     },
     {
-      to: '/people',
       value: totalPeople,
       unit: '位成员',
-      note: '主理人与伙伴',
+      label: '团队档案',
+      note: '主理人与常驻伙伴',
       className: 'bg-[#8EB9BA] text-[#102021]',
       icon: Users,
     },
     {
-      to: '/items',
       value: totalItems,
       unit: '件物品',
-      note: '每件都有来处',
+      label: '空间记忆',
+      note: latestItem ? `最新物件：${latestItem.name}` : '每件都有来处',
       className: 'bg-[#8FA783] text-[#141D12]',
       icon: BookOpen,
     },
     {
-      to: '#about',
       value: '∞',
       unit: '个故事',
+      label: '旅人回声',
       note: '从入住开始发生',
       className: 'bg-[#A95A50] text-white',
       icon: Sparkles,
@@ -93,39 +94,39 @@ export default function Home() {
   const quickLinks = [
     {
       to: '/activities',
-      title: '活动记录',
-      desc: '按时间线浏览客栈里的聚会、手作和旅行片段。',
-      meta: `${totalActivities} 条内容`,
+      title: '看最新活动',
+      desc: latestActivity ? `从「${latestActivity.title}」开始，查看客栈最近发生的事。` : '按时间线浏览客栈里的聚会、手作和旅行片段。',
+      meta: '故事时间线',
       icon: Calendar,
       color: '#A95A50',
     },
     {
       to: '/people',
-      title: '人员介绍',
-      desc: '认识主理人、伙伴和让这里有温度的人。',
-      meta: `${totalPeople} 位成员`,
+      title: '认识主理人',
+      desc: '了解负责接待、拍摄、整理故事和维护客栈日常的人。',
+      meta: '团队介绍',
       icon: Users,
       color: '#477F82',
     },
     {
       to: '/items',
-      title: '物品展示',
-      desc: '查看招牌、空间角落和被旅人留下的故事物件。',
-      meta: `${totalItems} 件物品`,
+      title: '逛空间物件',
+      desc: '查看招牌、院落角落、房间小物和旅人留下的纪念。',
+      meta: '物件陈列',
       icon: BookOpen,
       color: '#687B59',
     },
     {
-      to: '#about',
-      title: '联系预订',
-      desc: '查看地址和客栈信息，方便确认到店前的细节。',
-      meta: '地址 / 介绍',
+      to: '/about',
+      title: '查看详情页',
+      desc: '进入独立详情页，查看地址、入住提示和客栈介绍。',
+      meta: '客栈详情',
       icon: MapPin,
       color: '#C09A43',
     },
   ];
 
-  const renderNavLink = (to: string, className: string, children: React.ReactNode) => {
+  const renderActionLink = (to: string, className: string, children: ReactNode) => {
     if (to.startsWith('#')) {
       return (
         <a href={to} className={className}>
@@ -225,12 +226,12 @@ export default function Home() {
 
       <section className="border-t-2 border-dashed border-black px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-2">
+          <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[0.95fr_1.05fr]">
             <div>
               <div className="mb-8 flex items-end justify-between gap-4 border-b-2 border-black pb-3">
                 <div>
                   <h2 className="font-heading text-3xl md:text-4xl">数据一览</h2>
-                  <p className="mt-1 font-body text-sm opacity-60">点击卡片可直达对应内容</p>
+                  <p className="mt-1 font-body text-sm opacity-60">展示当前内容体量，不再重复导航</p>
                 </div>
                 <span className="hidden border-2 border-black px-3 py-1 font-ui text-xs tracking-wide sm:inline-block">LIVE</span>
               </div>
@@ -238,10 +239,11 @@ export default function Home() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {stats.map((stat) => {
                   const Icon = stat.icon;
-                  return renderNavLink(
-                    stat.to,
-                    `group relative min-h-[182px] border-2 border-black p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[6px_6px_0px_rgba(0,0,0,0.18)] ${stat.className}`,
-                    <>
+                  return (
+                    <article
+                      key={stat.unit}
+                      className={`relative min-h-[176px] border-2 border-black p-5 ${stat.className}`}
+                    >
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <div className="font-display text-5xl leading-none">{stat.value}</div>
@@ -251,28 +253,31 @@ export default function Home() {
                           <Icon className="h-5 w-5" />
                         </div>
                       </div>
-                      <div className="absolute bottom-4 left-5 right-5 flex items-center justify-between gap-3">
+                      <div className="absolute bottom-4 left-5 right-5">
+                        <div className="mb-1 font-ui text-[0.68rem] tracking-widest opacity-70">{stat.label}</div>
                         <p className="line-clamp-1 font-body text-xs opacity-75">{stat.note}</p>
-                        <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" />
                       </div>
-                    </>,
+                    </article>
                   );
                 })}
               </div>
             </div>
 
             <div>
-              <div className="mb-8 border-b-2 border-black pb-3">
-                <h2 className="font-heading text-3xl md:text-4xl">快速入口</h2>
-                <p className="mt-1 font-body text-sm opacity-60">按浏览目的选择下一站</p>
+              <div className="mb-8 flex items-end justify-between gap-4 border-b-2 border-black pb-3">
+                <div>
+                  <h2 className="font-heading text-3xl md:text-4xl">快速入口</h2>
+                  <p className="mt-1 font-body text-sm opacity-60">选择具体动作，进入对应页面</p>
+                </div>
+                <Compass className="hidden h-9 w-9 text-[#A95A50] sm:block" />
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {quickLinks.map((link) => {
                   const Icon = link.icon;
-                  return renderNavLink(
+                  return renderActionLink(
                     link.to,
-                    'group relative min-h-[182px] border-2 border-black bg-[#F7F0E6] p-5 transition-all duration-300 hover:-translate-y-1 hover:bg-[#FFF9EE] hover:shadow-[6px_6px_0px_rgba(0,0,0,0.16)]',
+                    'group relative min-h-[176px] border-2 border-black bg-[#F7F0E6] p-5 transition-all duration-300 hover:-translate-y-1 hover:bg-[#FFF9EE] hover:shadow-[6px_6px_0px_rgba(0,0,0,0.16)]',
                     <>
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
@@ -311,6 +316,13 @@ export default function Home() {
             <MapPin className="h-4 w-4 text-[#C52A32]" />
             <span>云南省大理市古城内 / 始于 2024</span>
           </div>
+          <Link
+            to="/about"
+            className="mt-8 inline-flex items-center gap-2 border-2 border-black px-5 py-3 font-ui text-sm tracking-wide transition-all hover:bg-black hover:text-white"
+          >
+            查看完整详情
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </section>
     </div>
