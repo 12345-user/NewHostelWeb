@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { createRouter, publicQuery, editorQuery, ownerQuery } from "./middleware";
-import { getDb } from "./queries/connection";
-import { people } from "@db/schema";
+import { createRouter, publicQuery, editorQuery, ownerQuery } from "./middleware.js";
+import { getDb } from "./queries/connection.js";
+import { people } from "../db/schema.js";
 import { eq } from "drizzle-orm";
-import { env } from "./lib/env";
-import { demoPeople } from "./demo-data";
+import { env } from "./lib/env.js";
+import { demoPeople } from "./demo-data.js";
 
 export const peopleRouter = createRouter({
   list: publicQuery.query(async () => {

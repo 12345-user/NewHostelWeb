@@ -1,6 +1,6 @@
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
-import type { AppUser } from "./local-auth";
-import { authenticateLocalRequest } from "./local-auth";
+import type { AppUser } from "./local-auth.js";
+import { authenticateLocalRequest } from "./local-auth.js";
 
 export type TrpcContext = {
   req: Request;

@@ -1,7 +1,7 @@
 import * as cookie from "cookie";
 import * as jose from "jose";
-import { Session } from "@contracts/constants";
-import { env } from "./lib/env";
+import { Session } from "../contracts/constants.js";
+import { env } from "./lib/env.js";
 
 export type AppRole = "owner" | "admin";
 

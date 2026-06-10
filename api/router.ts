@@ -1,8 +1,8 @@
-import { authRouter } from "./auth-router";
-import { activityRouter } from "./activity-router";
-import { peopleRouter } from "./people-router";
-import { itemRouter } from "./item-router";
-import { createRouter, publicQuery } from "./middleware";
+import { authRouter } from "./auth-router.js";
+import { activityRouter } from "./activity-router.js";
+import { peopleRouter } from "./people-router.js";
+import { itemRouter } from "./item-router.js";
+import { createRouter, publicQuery } from "./middleware.js";
 
 export const appRouter = createRouter({
   ping: publicQuery.query(() => ({ ok: true, ts: Date.now() })),

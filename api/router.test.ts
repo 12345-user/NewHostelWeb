@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { appRouter } from "./router";
-import type { AppUser } from "./local-auth";
+import { appRouter } from "./router.js";
+import type { AppUser } from "./local-auth.js";
 
 function caller(user?: AppUser) {
   return appRouter.createCaller({
