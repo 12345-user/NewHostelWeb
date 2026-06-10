@@ -71,7 +71,7 @@ function getContentType(filePath: string): string {
 
 export default app;
 
-if (env.isProduction) {
+if (env.isProduction && !process.env.VERCEL) {
   const { serve } = await import("@hono/node-server");
   const { serveStaticFiles } = await import("./lib/vite");
   serveStaticFiles(app);
