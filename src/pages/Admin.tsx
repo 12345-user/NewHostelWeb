@@ -69,7 +69,7 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-[#EBE5DB] pt-20">
       <div className="border-b-2 border-black">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <div className="flex items-center gap-3 mb-4">
@@ -91,18 +91,18 @@ export default function Admin() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <Tabs defaultValue="activities" className="w-full">
-          <TabsList className="w-full justify-start bg-transparent border-2 border-black rounded-none p-0 h-auto mb-8 overflow-x-auto">
-            <TabsTrigger value="activities" className="rounded-none border-r-2 border-black px-6 py-3 data-[state=active]:bg-[#F6C347] data-[state=active]:shadow-none font-ui text-sm">
+          <TabsList className="w-full justify-start bg-transparent border-2 border-black rounded-none p-0 h-auto mb-6 sm:mb-8 overflow-x-auto">
+            <TabsTrigger value="activities" className="shrink-0 rounded-none border-r-2 border-black px-4 py-3 data-[state=active]:bg-[#F6C347] data-[state=active]:shadow-none font-ui text-sm sm:px-6">
               <Calendar className="w-4 h-4 mr-2" />
               活动管理
             </TabsTrigger>
-            <TabsTrigger value="people" className="rounded-none border-r-2 border-black px-6 py-3 data-[state=active]:bg-[#0E92A9] data-[state=active]:text-white data-[state=active]:shadow-none font-ui text-sm">
+            <TabsTrigger value="people" className="shrink-0 rounded-none border-r-2 border-black px-4 py-3 data-[state=active]:bg-[#0E92A9] data-[state=active]:text-white data-[state=active]:shadow-none font-ui text-sm sm:px-6">
               <Users className="w-4 h-4 mr-2" />
               人员管理
             </TabsTrigger>
-            <TabsTrigger value="items" className="rounded-none px-6 py-3 data-[state=active]:bg-[#5D9484] data-[state=active]:text-white data-[state=active]:shadow-none font-ui text-sm">
+            <TabsTrigger value="items" className="shrink-0 rounded-none px-4 py-3 data-[state=active]:bg-[#5D9484] data-[state=active]:text-white data-[state=active]:shadow-none font-ui text-sm sm:px-6">
               <BookOpen className="w-4 h-4 mr-2" />
               物品管理
             </TabsTrigger>
@@ -177,7 +177,7 @@ function ActivityManager({ canDelete }: PermissionProps) {
       <ManagerHeader title="活动列表" actionLabel="新增活动" color="bg-[#C52A32]" onCreate={() => { resetForm(); setIsDialogOpen(true); }} />
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger className="hidden" />
-        <DialogContent className="max-w-2xl bg-[#EBE5DB] border-2 border-black rounded-none">
+        <DialogContent className="max-h-[88vh] w-[calc(100vw-2rem)] max-w-2xl overflow-y-auto bg-[#EBE5DB] border-2 border-black rounded-none">
           <DialogHeader><DialogTitle className="font-heading text-xl">{editingId ? '编辑活动' : '新增活动'}</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-4">
             <Field label="标题"><Input value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} className="border-2 border-black rounded-none bg-white" /></Field>
@@ -193,7 +193,7 @@ function ActivityManager({ canDelete }: PermissionProps) {
       </Dialog>
       <RecordList isLoading={isLoading}>
         {activities?.map((activity) => (
-          <div key={activity.id} className="border-2 border-black bg-white p-4 flex items-start gap-4">
+          <div key={activity.id} className="border-2 border-black bg-white p-4 flex flex-col gap-4 sm:flex-row sm:items-start">
             {activity.images?.[0] && <img src={activity.images[0]} alt={activity.title} className="w-24 h-24 object-cover border border-black" />}
             <div className="flex-1 min-w-0">
               <h3 className="font-heading text-lg">{activity.title}</h3>
@@ -253,7 +253,7 @@ function PeopleManager({ canDelete }: PermissionProps) {
       <ManagerHeader title="人员列表" actionLabel="新增人员" color="bg-[#0E92A9]" onCreate={() => { resetForm(); setIsDialogOpen(true); }} />
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger className="hidden" />
-        <DialogContent className="max-w-2xl bg-[#EBE5DB] border-2 border-black rounded-none">
+        <DialogContent className="max-h-[88vh] w-[calc(100vw-2rem)] max-w-2xl overflow-y-auto bg-[#EBE5DB] border-2 border-black rounded-none">
           <DialogHeader><DialogTitle className="font-heading text-xl">{editingId ? '编辑人员' : '新增人员'}</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-4">
             <Field label="姓名"><Input value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} className="border-2 border-black rounded-none bg-white" /></Field>
@@ -268,7 +268,7 @@ function PeopleManager({ canDelete }: PermissionProps) {
       </Dialog>
       <RecordList isLoading={isLoading}>
         {people?.map((person) => (
-          <div key={person.id} className="border-2 border-black bg-white p-4 flex items-start gap-4">
+          <div key={person.id} className="border-2 border-black bg-white p-4 flex flex-col gap-4 sm:flex-row sm:items-start">
             {person.avatar && <img src={person.avatar} alt={person.name} className="w-16 h-16 object-cover border border-black" />}
             <div className="flex-1 min-w-0">
               <h3 className="font-heading text-lg">{person.name}</h3>
@@ -328,7 +328,7 @@ function ItemManager({ canDelete }: PermissionProps) {
       <ManagerHeader title="物品列表" actionLabel="新增物品" color="bg-[#5D9484]" onCreate={() => { resetForm(); setIsDialogOpen(true); }} />
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger className="hidden" />
-        <DialogContent className="max-w-2xl bg-[#EBE5DB] border-2 border-black rounded-none">
+        <DialogContent className="max-h-[88vh] w-[calc(100vw-2rem)] max-w-2xl overflow-y-auto bg-[#EBE5DB] border-2 border-black rounded-none">
           <DialogHeader><DialogTitle className="font-heading text-xl">{editingId ? '编辑物品' : '新增物品'}</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-4">
             <Field label="名称"><Input value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} className="border-2 border-black rounded-none bg-white" /></Field>
@@ -342,7 +342,7 @@ function ItemManager({ canDelete }: PermissionProps) {
       </Dialog>
       <RecordList isLoading={isLoading}>
         {items?.map((item) => (
-          <div key={item.id} className="border-2 border-black bg-white p-4 flex items-start gap-4">
+          <div key={item.id} className="border-2 border-black bg-white p-4 flex flex-col gap-4 sm:flex-row sm:items-start">
             {item.image && <img src={item.image} alt={item.name} className="w-20 h-20 object-cover border border-black" />}
             <div className="flex-1 min-w-0">
               <h3 className="font-heading text-lg">{item.name}</h3>
@@ -359,9 +359,9 @@ function ItemManager({ canDelete }: PermissionProps) {
 
 function ManagerHeader({ title, actionLabel, color, onCreate }: { title: string; actionLabel: string; color: string; onCreate: () => void }) {
   return (
-    <div className="flex justify-between items-center mb-6">
+    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-6">
       <h2 className="font-heading text-2xl">{title}</h2>
-      <Button onClick={onCreate} className={`${color} hover:brightness-90 text-white border-2 border-black rounded-none font-ui`}>
+      <Button onClick={onCreate} className={`${color} hover:brightness-90 text-white border-2 border-black rounded-none font-ui w-full sm:w-auto`}>
         <Plus className="w-4 h-4 mr-2" />
         {actionLabel}
       </Button>
@@ -406,11 +406,11 @@ function ImageList({ images, onRemove }: { images: string[]; onRemove: (index: n
 
 function DialogActions({ editing, createText, updateText, onSubmit, onCancel }: { editing: boolean; createText: string; updateText: string; onSubmit: () => void; onCancel: () => void }) {
   return (
-    <div className="flex gap-3 pt-4">
-      <Button onClick={onSubmit} className="bg-black text-white hover:bg-[#C52A32] border-2 border-black rounded-none font-ui">
+    <div className="flex flex-col gap-3 pt-4 sm:flex-row">
+      <Button onClick={onSubmit} className="bg-black text-white hover:bg-[#C52A32] border-2 border-black rounded-none font-ui min-h-11">
         {editing ? updateText : createText}
       </Button>
-      <Button onClick={onCancel} variant="outline" className="border-2 border-black rounded-none font-ui">
+      <Button onClick={onCancel} variant="outline" className="border-2 border-black rounded-none font-ui min-h-11">
         取消
       </Button>
     </div>
@@ -431,7 +431,7 @@ function RecordList({ isLoading, children }: { isLoading: boolean; children: Rea
 
 function ActionButtons({ canDelete, onEdit, onDelete }: { canDelete: boolean; onEdit: () => void; onDelete: () => void }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 sm:ml-auto">
       <Button onClick={onEdit} variant="outline" size="sm" className="border-2 border-black rounded-none">
         <Edit className="w-4 h-4" />
       </Button>

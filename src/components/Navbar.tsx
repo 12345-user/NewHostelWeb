@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
-import { Compass, Menu, X, Shield } from 'lucide-react';
+import { Compass, Menu, Shield, X } from 'lucide-react';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,10 +11,9 @@ export default function Navbar() {
   const canManage = user?.role === 'owner' || user?.role === 'admin';
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -23,26 +22,27 @@ export default function Navbar() {
     { path: '/activities', label: '活动' },
     { path: '/people', label: '人员' },
     { path: '/items', label: '物品' },
+    { path: '/about', label: '详情' },
   ];
+
+  const solid = scrolled || isOpen || location.pathname !== '/';
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? 'bg-[#EBE5DB]/95 backdrop-blur-sm border-b-2 border-black'
-          : 'bg-transparent'
+      className={`fixed left-0 right-0 top-0 z-50 transition-all duration-300 ${
+        solid ? 'border-b-2 border-black bg-[#EBE5DB]/96 shadow-[0_8px_24px_rgba(42,34,22,0.08)] backdrop-blur-sm' : 'bg-transparent'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2 group">
-            <Compass className="w-6 h-6 text-[#C52A32] group-hover:rotate-45 transition-transform duration-300" />
-            <span className="font-heading text-lg tracking-wider text-black">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between gap-3">
+          <Link to="/" className="group flex min-w-0 items-center gap-2">
+            <Compass className="h-6 w-6 shrink-0 text-[#C52A32] transition-transform duration-300 group-hover:rotate-45" />
+            <span className={`truncate font-heading text-base tracking-wider sm:text-lg ${solid ? 'text-black' : 'text-white lg:text-black'}`}>
               猫驼旅者客栈
             </span>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-2 rounded-full border border-black/10 bg-[#F4EFE6]/82 px-2 py-1.5 shadow-[0_10px_30px_rgba(42,34,22,0.08)] backdrop-blur-md">
+          <div className="hidden items-center gap-2 rounded-full border border-black/10 bg-[#F4EFE6]/85 px-2 py-1.5 shadow-[0_10px_30px_rgba(42,34,22,0.08)] backdrop-blur-md lg:flex">
             {navLinks.map((link) => {
               const active = location.pathname === link.path;
               return (
@@ -68,7 +68,7 @@ export default function Navbar() {
                     : 'text-[#493D2F] hover:bg-white/60 hover:text-black'
                 }`}
               >
-                <Shield className="w-4 h-4" />
+                <Shield className="h-4 w-4" />
                 后台
               </Link>
             )}
@@ -90,31 +90,28 @@ export default function Navbar() {
           </div>
 
           <button
-            onClick={() => setIsOpen(!isOpen)}
+            onClick={() => setIsOpen((open) => !open)}
             aria-label={isOpen ? '关闭菜单' : '打开菜单'}
-            className={`lg:hidden p-2 border-2 transition-colors duration-200 ${
-              scrolled
-                ? 'border-black text-black bg-transparent'
-                : 'border-white text-white bg-black/35 backdrop-blur-sm'
+            aria-expanded={isOpen}
+            className={`flex h-11 w-11 items-center justify-center border-2 transition-colors duration-200 lg:hidden ${
+              solid ? 'border-black bg-[#F7F0E6] text-black' : 'border-white bg-black/35 text-white backdrop-blur-sm'
             }`}
           >
-            {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
       {isOpen && (
-        <div className="lg:hidden bg-[#F3EEE4] border-b-2 border-black shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
-          <div className="px-4 py-2 space-y-1">
+        <div className="border-t-2 border-black bg-[#F3EEE4] shadow-[0_12px_30px_rgba(0,0,0,0.18)] lg:hidden">
+          <div className="mx-auto max-w-7xl space-y-2 px-4 py-3">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 onClick={() => setIsOpen(false)}
-                className={`block px-4 py-3 font-ui text-base tracking-wide text-black border-2 border-transparent hover:border-black hover:bg-[#E8E1D5] ${
-                  location.pathname === link.path
-                    ? 'border-black bg-[#F6C347] font-semibold'
-                    : ''
+                className={`block border-2 px-4 py-3 font-ui text-base tracking-wide text-black transition-all ${
+                  location.pathname === link.path ? 'border-black bg-[#D7B85A] font-semibold' : 'border-transparent bg-white/45 hover:border-black'
                 }`}
               >
                 {link.label}
@@ -124,7 +121,7 @@ export default function Navbar() {
               <Link
                 to="/admin"
                 onClick={() => setIsOpen(false)}
-                className="block px-4 py-3 font-ui text-base tracking-wide text-black border-2 border-transparent hover:border-black hover:bg-[#E8E1D5]"
+                className="block border-2 border-transparent bg-white/45 px-4 py-3 font-ui text-base tracking-wide text-black hover:border-black"
               >
                 管理后台
               </Link>
@@ -132,7 +129,7 @@ export default function Navbar() {
             {isAuthenticated ? (
               <button
                 onClick={logout}
-                className="block w-full text-left px-4 py-3 font-ui text-base tracking-wide border-2 border-black text-black hover:bg-black hover:text-white transition-all"
+                className="block w-full border-2 border-black px-4 py-3 text-left font-ui text-base tracking-wide text-black transition-all hover:bg-black hover:text-white"
               >
                 退出登录
               </button>
@@ -140,7 +137,7 @@ export default function Navbar() {
               <Link
                 to="/login"
                 onClick={() => setIsOpen(false)}
-                className="block px-4 py-3 font-ui text-base tracking-wide border-2 border-black bg-black text-white"
+                className="block border-2 border-black bg-black px-4 py-3 font-ui text-base tracking-wide text-white"
               >
                 登录
               </Link>
