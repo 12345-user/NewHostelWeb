@@ -1,4 +1,5 @@
 import * as cookie from "cookie";
+import { createHash } from "crypto";
 import * as jose from "jose";
 import { Session } from "../contracts/constants.js";
 import { env } from "./lib/env.js";
@@ -75,6 +76,23 @@ export function verifyCredentials(username: string, password: string) {
 
   const expectedPassword = getAccountPassword(account);
   if (!expectedPassword || expectedPassword !== password) return null;
+
+  return toPublicUser(account);
+}
+
+export function verifyCredentialHash(username: string, passwordHash: string) {
+  const normalizedUsername = username.trim().toLowerCase();
+  const account = accounts.find((item) => item.username === normalizedUsername);
+  if (!account) return null;
+
+  const expectedPassword = getAccountPassword(account);
+  if (!expectedPassword) return null;
+
+  const expectedHash = createHash("sha256")
+    .update(expectedPassword)
+    .digest("hex");
+
+  if (expectedHash !== passwordHash.trim().toLowerCase()) return null;
 
   return toPublicUser(account);
 }

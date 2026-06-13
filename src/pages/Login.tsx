@@ -8,6 +8,14 @@ import { Compass, Lock, Mail, ShieldCheck } from "lucide-react";
 
 const HUMAN_CODE = "CATCAMEL";
 
+async function sha256Hex(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const utils = trpc.useUtils();
@@ -53,15 +61,18 @@ export default function Login() {
     const timer = window.setTimeout(() => controller.abort(), 15000);
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
+      const passwordHash = await sha256Hex(password);
+      const params = new URLSearchParams({
+        username: email.trim().toLowerCase(),
+        passwordHash,
+        humanCode,
+        t: String(Date.now()),
+      });
+
+      const response = await fetch(`/api/auth/login?${params.toString()}`, {
+        method: "GET",
         credentials: "include",
-        body: JSON.stringify({
-          username: email.trim().toLowerCase(),
-          password,
-          humanCode,
-        }),
+        cache: "no-store",
         signal: controller.signal,
       });
 

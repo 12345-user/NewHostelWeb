@@ -30,9 +30,10 @@ export function useAuth(options?: UseAuthOptions) {
   const logout = useCallback(async () => {
     setIsLoggingOut(true);
     try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
+      await fetch(`/api/auth/logout?t=${Date.now()}`, {
+        method: "GET",
         credentials: "include",
+        cache: "no-store",
       });
       void utils.invalidate();
       window.location.assign(redirectPath);

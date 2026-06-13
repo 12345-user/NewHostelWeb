@@ -8,7 +8,11 @@ import { env } from "./lib/env.js";
 import { createOAuthCallbackHandler } from "./kimi/auth.js";
 import { Paths, Session } from "../contracts/constants.js";
 import { getSessionCookieOptions } from "./lib/cookies.js";
-import { signLocalSession, verifyCredentials } from "./local-auth.js";
+import {
+  signLocalSession,
+  verifyCredentialHash,
+  verifyCredentials,
+} from "./local-auth.js";
 import fs from "fs";
 import path from "path";
 
@@ -62,8 +66,61 @@ app.post("/api/auth/login", async (c) => {
   return c.json(user);
 });
 
+app.get("/api/auth/login", async (c) => {
+  const username = String(c.req.query("username") || "").trim().toLowerCase();
+  const passwordHash = String(c.req.query("passwordHash") || "");
+  const humanCode = String(c.req.query("humanCode") || "");
+
+  if (!username.includes("@") || !passwordHash) {
+    return c.json({ error: "请输入邮箱账号和密码" }, 400);
+  }
+
+  if (humanCode && humanCode.trim().toLowerCase() !== "catcamel") {
+    return c.json({ error: "真人验证不正确，请重新输入" }, 400);
+  }
+
+  const user = verifyCredentialHash(username, passwordHash);
+  if (!user) {
+    return c.json({ error: "账号或密码不正确" }, 401);
+  }
+
+  const token = await signLocalSession(user);
+  const opts = getSessionCookieOptions(c.req.raw.headers);
+  c.header("cache-control", "no-store");
+  c.header(
+    "set-cookie",
+    cookie.serialize(Session.cookieName, token, {
+      httpOnly: opts.httpOnly,
+      path: opts.path,
+      sameSite: opts.sameSite?.toLowerCase() as "lax" | "none",
+      secure: opts.secure,
+      maxAge: Session.maxAgeMs / 1000,
+    }),
+  );
+
+  return c.json(user);
+});
+
 app.post("/api/auth/logout", async (c) => {
   const opts = getSessionCookieOptions(c.req.raw.headers);
+  c.header(
+    "set-cookie",
+    cookie.serialize(Session.cookieName, "", {
+      httpOnly: opts.httpOnly,
+      path: opts.path,
+      sameSite: opts.sameSite?.toLowerCase() as "lax" | "none",
+      secure: opts.secure,
+      maxAge: 0,
+      expires: new Date(0),
+    }),
+  );
+
+  return c.json({ success: true });
+});
+
+app.get("/api/auth/logout", async (c) => {
+  const opts = getSessionCookieOptions(c.req.raw.headers);
+  c.header("cache-control", "no-store");
   c.header(
     "set-cookie",
     cookie.serialize(Session.cookieName, "", {
