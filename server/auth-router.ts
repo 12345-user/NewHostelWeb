@@ -14,11 +14,14 @@ export const authRouter = createRouter({
       z.object({
         username: z.string().trim().toLowerCase().email(),
         password: z.string().min(1),
-        humanCode: z.string().min(1),
+        humanCode: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (input.humanCode.trim().toLowerCase() !== HUMAN_VERIFICATION_CODE) {
+      if (
+        input.humanCode &&
+        input.humanCode.trim().toLowerCase() !== HUMAN_VERIFICATION_CODE
+      ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "真人验证不正确，请重新输入",

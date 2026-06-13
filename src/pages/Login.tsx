@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [humanCode, setHumanCode] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [submittedAt, setSubmittedAt] = useState<number | null>(null);
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async () => {
@@ -22,9 +23,23 @@ export default function Login() {
       navigate("/admin");
     },
     onError: (error) => {
-      setErrorMessage(error.message || "登录失败，请检查账号、密码和真人验证。");
+      setSubmittedAt(null);
+      setErrorMessage(error.message || "登录失败，请检查邮箱账号、密码和真人验证。");
     },
   });
+
+  useEffect(() => {
+    if (!submittedAt || !loginMutation.isPending) return;
+
+    const timer = window.setTimeout(() => {
+      if (loginMutation.isPending) {
+        setSubmittedAt(null);
+        setErrorMessage("登录请求超时，请刷新页面后重试。");
+      }
+    }, 15000);
+
+    return () => window.clearTimeout(timer);
+  }, [loginMutation.isPending, submittedAt]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -40,12 +55,15 @@ export default function Login() {
       return;
     }
 
+    setSubmittedAt(Date.now());
     loginMutation.mutate({
       username: email.trim().toLowerCase(),
       password,
       humanCode,
     });
   };
+
+  const isSubmitting = loginMutation.isPending && submittedAt !== null;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#EBE5DB] px-4 py-24">
@@ -123,11 +141,11 @@ export default function Login() {
               )}
 
               <Button
-                className="min-h-12 w-full rounded-none border-2 border-black bg-black font-ui text-sm tracking-wider text-white transition-all duration-300 hover:bg-[#C52A32]"
+                className="min-h-12 w-full rounded-none border-2 border-black bg-black font-ui text-sm tracking-wider text-white transition-all duration-300 hover:bg-[#C52A32] disabled:bg-black/50"
                 size="lg"
-                disabled={loginMutation.isPending}
+                disabled={isSubmitting}
               >
-                {loginMutation.isPending ? "登录中..." : "登录后台"}
+                {isSubmitting ? "登录中..." : "登录后台"}
               </Button>
             </form>
 
