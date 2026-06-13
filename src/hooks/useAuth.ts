@@ -1,5 +1,5 @@
 import { trpc } from "@/providers/trpc-client";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { LOGIN_PATH } from "@/const";
 
@@ -15,6 +15,7 @@ export function useAuth(options?: UseAuthOptions) {
   const navigate = useNavigate();
 
   const utils = trpc.useUtils();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const {
     data: user,
@@ -26,14 +27,19 @@ export function useAuth(options?: UseAuthOptions) {
     retry: false,
   });
 
-  const logoutMutation = trpc.auth.logout.useMutation({
-    onSuccess: () => {
+  const logout = useCallback(async () => {
+    setIsLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
       void utils.invalidate();
       window.location.assign(redirectPath);
-    },
-  });
-
-  const logout = useCallback(() => logoutMutation.mutate(), [logoutMutation]);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }, [redirectPath, utils]);
 
   useEffect(() => {
     if (redirectOnUnauthenticated && !isLoading && !user) {
@@ -48,11 +54,11 @@ export function useAuth(options?: UseAuthOptions) {
     () => ({
       user: user ?? null,
       isAuthenticated: !!user,
-      isLoading: isLoading || logoutMutation.isPending,
+      isLoading: isLoading || isLoggingOut,
       error,
       logout,
       refresh: refetch,
     }),
-    [user, isLoading, logoutMutation.isPending, error, logout, refetch],
+    [user, isLoading, isLoggingOut, error, logout, refetch],
   );
 }

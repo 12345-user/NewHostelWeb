@@ -1,17 +1,83 @@
 import { Hono } from "hono";
+import * as cookie from "cookie";
 import type { HttpBindings } from "@hono/node-server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "./router.js";
 import { createContext } from "./context.js";
 import { env } from "./lib/env.js";
 import { createOAuthCallbackHandler } from "./kimi/auth.js";
-import { Paths } from "../contracts/constants.js";
+import { Paths, Session } from "../contracts/constants.js";
+import { getSessionCookieOptions } from "./lib/cookies.js";
+import { signLocalSession, verifyCredentials } from "./local-auth.js";
 import fs from "fs";
 import path from "path";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
 app.get(Paths.oauthCallback, createOAuthCallbackHandler());
+
+app.post("/api/auth/login", async (c) => {
+  let input: {
+    username?: string;
+    password?: string;
+    humanCode?: string;
+  };
+
+  try {
+    input = await c.req.json();
+  } catch {
+    return c.json({ error: "请求格式不正确" }, 400);
+  }
+
+  const username = String(input.username || "").trim().toLowerCase();
+  const password = String(input.password || "");
+  const humanCode = String(input.humanCode || "");
+
+  if (!username.includes("@") || !password) {
+    return c.json({ error: "请输入邮箱账号和密码" }, 400);
+  }
+
+  if (humanCode && humanCode.trim().toLowerCase() !== "catcamel") {
+    return c.json({ error: "真人验证不正确，请重新输入" }, 400);
+  }
+
+  const user = verifyCredentials(username, password);
+  if (!user) {
+    return c.json({ error: "账号或密码不正确" }, 401);
+  }
+
+  const token = await signLocalSession(user);
+  const opts = getSessionCookieOptions(c.req.raw.headers);
+  c.header(
+    "set-cookie",
+    cookie.serialize(Session.cookieName, token, {
+      httpOnly: opts.httpOnly,
+      path: opts.path,
+      sameSite: opts.sameSite?.toLowerCase() as "lax" | "none",
+      secure: opts.secure,
+      maxAge: Session.maxAgeMs / 1000,
+    }),
+  );
+
+  return c.json(user);
+});
+
+app.post("/api/auth/logout", async (c) => {
+  const opts = getSessionCookieOptions(c.req.raw.headers);
+  c.header(
+    "set-cookie",
+    cookie.serialize(Session.cookieName, "", {
+      httpOnly: opts.httpOnly,
+      path: opts.path,
+      sameSite: opts.sameSite?.toLowerCase() as "lax" | "none",
+      secure: opts.secure,
+      maxAge: 0,
+      expires: new Date(0),
+    }),
+  );
+
+  return c.json({ success: true });
+});
 
 // Serve static files from public directory
 app.use("/images/*", async (c) => {

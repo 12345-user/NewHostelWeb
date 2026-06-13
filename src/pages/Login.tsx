@@ -16,32 +16,23 @@ export default function Login() {
   const [humanCode, setHumanCode] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [submittedAt, setSubmittedAt] = useState<number | null>(null);
-
-  const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: async () => {
-      await utils.invalidate();
-      navigate("/admin");
-    },
-    onError: (error) => {
-      setSubmittedAt(null);
-      setErrorMessage(error.message || "登录失败，请检查邮箱账号、密码和真人验证。");
-    },
-  });
+  const [isPending, setIsPending] = useState(false);
 
   useEffect(() => {
-    if (!submittedAt || !loginMutation.isPending) return;
+    if (!submittedAt || !isPending) return;
 
     const timer = window.setTimeout(() => {
-      if (loginMutation.isPending) {
+      if (isPending) {
+        setIsPending(false);
         setSubmittedAt(null);
         setErrorMessage("登录请求超时，请刷新页面后重试。");
       }
     }, 15000);
 
     return () => window.clearTimeout(timer);
-  }, [loginMutation.isPending, submittedAt]);
+  }, [isPending, submittedAt]);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage("");
 
@@ -56,14 +47,45 @@ export default function Login() {
     }
 
     setSubmittedAt(Date.now());
-    loginMutation.mutate({
-      username: email.trim().toLowerCase(),
-      password,
-      humanCode,
-    });
+    setIsPending(true);
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          username: email.trim().toLowerCase(),
+          password,
+          humanCode,
+        }),
+        signal: controller.signal,
+      });
+
+      const data = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+
+      if (!response.ok) {
+        setErrorMessage(data?.error || "登录失败，请检查邮箱账号、密码和真人验证。");
+        return;
+      }
+
+      await utils.invalidate();
+      navigate("/admin");
+    } catch {
+      setErrorMessage("登录请求失败，请检查网络后重试。");
+    } finally {
+      window.clearTimeout(timer);
+      setIsPending(false);
+      setSubmittedAt(null);
+    }
   };
 
-  const isSubmitting = loginMutation.isPending && submittedAt !== null;
+  const isSubmitting = isPending && submittedAt !== null;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#EBE5DB] px-4 py-24">
