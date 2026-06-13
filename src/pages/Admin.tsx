@@ -41,6 +41,30 @@ type PermissionProps = {
   canDelete: boolean;
 };
 
+async function saveAdminRecord(
+  path: string,
+  data: Record<string, string | number | null | undefined>,
+) {
+  const params = new URLSearchParams();
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== null && value !== undefined) params.set(key, String(value));
+  });
+  params.set('t', String(Date.now()));
+
+  const response = await fetch(`${path}?${params.toString()}`, {
+    method: 'GET',
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  const result = (await response.json().catch(() => null)) as
+    | { error?: string }
+    | null;
+
+  if (!response.ok) {
+    throw new Error(result?.error || '保存失败，请稍后重试');
+  }
+}
+
 export default function Admin() {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth({ redirectOnUnauthenticated: true });
@@ -126,23 +150,38 @@ export default function Admin() {
 function ActivityManager({ canDelete }: PermissionProps) {
   const utils = trpc.useUtils();
   const { data: activities, isLoading } = trpc.activity.list.useQuery();
-  const createMutation = trpc.activity.create.useMutation({ onSuccess: () => utils.activity.list.invalidate() });
-  const updateMutation = trpc.activity.update.useMutation({ onSuccess: () => utils.activity.list.invalidate() });
   const deleteMutation = trpc.activity.delete.useMutation({ onSuccess: () => utils.activity.list.invalidate() });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({ title: '', date: '', participants: '', summary: '', description: '', images: [] as string[] });
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const resetForm = () => {
     setFormData({ title: '', date: '', participants: '', summary: '', description: '', images: [] });
     setEditingId(null);
   };
 
-  const handleSubmit = () => {
-    if (editingId) updateMutation.mutate({ id: editingId, ...formData });
-    else createMutation.mutate(formData);
-    setIsDialogOpen(false);
-    resetForm();
+  const handleSubmit = async () => {
+    setErrorMessage('');
+    setIsSaving(true);
+    try {
+      await saveAdminRecord('/api/admin/activity/save', {
+        id: editingId ?? undefined,
+        title: formData.title,
+        date: formData.date,
+        participants: formData.participants,
+        summary: formData.summary,
+        description: formData.description,
+      });
+      await utils.activity.list.invalidate();
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : '保存失败，请稍后重试');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleEdit = (activity: ActivityRecord) => {
@@ -187,7 +226,8 @@ function ActivityManager({ canDelete }: PermissionProps) {
             <Field label="详细描述"><Textarea value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} rows={4} className="border-2 border-black rounded-none bg-white" /></Field>
             <ImageList images={formData.images} onRemove={(index) => setFormData((p) => ({ ...p, images: p.images.filter((_, i) => i !== index) }))} />
             <UploadButton multiple onChange={handleImageUpload} label="添加图片" />
-            <DialogActions editing={!!editingId} createText="创建活动" updateText="保存修改" onSubmit={handleSubmit} onCancel={() => { setIsDialogOpen(false); resetForm(); }} />
+            {errorMessage && <p className="border border-[#C52A32] bg-[#C52A32]/10 px-3 py-2 font-body text-sm text-[#8C1F25]">{errorMessage}</p>}
+            <DialogActions editing={!!editingId} isSaving={isSaving} createText="创建活动" updateText="保存修改" onSubmit={handleSubmit} onCancel={() => { setIsDialogOpen(false); resetForm(); }} />
           </div>
         </DialogContent>
       </Dialog>
@@ -211,23 +251,37 @@ function ActivityManager({ canDelete }: PermissionProps) {
 function PeopleManager({ canDelete }: PermissionProps) {
   const utils = trpc.useUtils();
   const { data: people, isLoading } = trpc.people.list.useQuery();
-  const createMutation = trpc.people.create.useMutation({ onSuccess: () => utils.people.list.invalidate() });
-  const updateMutation = trpc.people.update.useMutation({ onSuccess: () => utils.people.list.invalidate() });
   const deleteMutation = trpc.people.delete.useMutation({ onSuccess: () => utils.people.list.invalidate() });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({ name: '', bio: '', skills: '', contact: '', avatar: '', images: [] as string[] });
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const resetForm = () => {
     setFormData({ name: '', bio: '', skills: '', contact: '', avatar: '', images: [] });
     setEditingId(null);
   };
 
-  const handleSubmit = () => {
-    if (editingId) updateMutation.mutate({ id: editingId, ...formData });
-    else createMutation.mutate(formData);
-    setIsDialogOpen(false);
-    resetForm();
+  const handleSubmit = async () => {
+    setErrorMessage('');
+    setIsSaving(true);
+    try {
+      await saveAdminRecord('/api/admin/person/save', {
+        id: editingId ?? undefined,
+        name: formData.name,
+        bio: formData.bio,
+        skills: formData.skills,
+        contact: formData.contact,
+      });
+      await utils.people.list.invalidate();
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : '保存失败，请稍后重试');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleEdit = (person: PersonRecord) => {
@@ -262,7 +316,8 @@ function PeopleManager({ canDelete }: PermissionProps) {
             <Field label="联系方式"><Input value={formData.contact} onChange={(e) => setFormData((p) => ({ ...p, contact: e.target.value }))} className="border-2 border-black rounded-none bg-white" /></Field>
             {formData.avatar && <img src={formData.avatar} alt="头像预览" className="w-20 h-20 object-cover border-2 border-black" />}
             <UploadButton onChange={handleAvatarUpload} label="上传头像" />
-            <DialogActions editing={!!editingId} createText="创建人员" updateText="保存修改" onSubmit={handleSubmit} onCancel={() => { setIsDialogOpen(false); resetForm(); }} />
+            {errorMessage && <p className="border border-[#C52A32] bg-[#C52A32]/10 px-3 py-2 font-body text-sm text-[#8C1F25]">{errorMessage}</p>}
+            <DialogActions editing={!!editingId} isSaving={isSaving} createText="创建人员" updateText="保存修改" onSubmit={handleSubmit} onCancel={() => { setIsDialogOpen(false); resetForm(); }} />
           </div>
         </DialogContent>
       </Dialog>
@@ -404,13 +459,13 @@ function ImageList({ images, onRemove }: { images: string[]; onRemove: (index: n
   );
 }
 
-function DialogActions({ editing, createText, updateText, onSubmit, onCancel }: { editing: boolean; createText: string; updateText: string; onSubmit: () => void; onCancel: () => void }) {
+function DialogActions({ editing, isSaving, createText, updateText, onSubmit, onCancel }: { editing: boolean; isSaving?: boolean; createText: string; updateText: string; onSubmit: () => void; onCancel: () => void }) {
   return (
     <div className="flex flex-col gap-3 pt-4 sm:flex-row">
-      <Button onClick={onSubmit} className="bg-black text-white hover:bg-[#C52A32] border-2 border-black rounded-none font-ui min-h-11">
-        {editing ? updateText : createText}
+      <Button onClick={onSubmit} disabled={isSaving} className="bg-black text-white hover:bg-[#C52A32] border-2 border-black rounded-none font-ui min-h-11 disabled:bg-black/50">
+        {isSaving ? '保存中...' : editing ? updateText : createText}
       </Button>
-      <Button onClick={onCancel} variant="outline" className="border-2 border-black rounded-none font-ui min-h-11">
+      <Button onClick={onCancel} disabled={isSaving} variant="outline" className="border-2 border-black rounded-none font-ui min-h-11">
         取消
       </Button>
     </div>

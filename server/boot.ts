@@ -8,11 +8,16 @@ import { env } from "./lib/env.js";
 import { createOAuthCallbackHandler } from "./kimi/auth.js";
 import { Paths, Session } from "../contracts/constants.js";
 import { getSessionCookieOptions } from "./lib/cookies.js";
+import { getDb } from "./queries/connection.js";
 import {
+  authenticateLocalRequest,
   signLocalSession,
   verifyCredentialHash,
   verifyCredentials,
 } from "./local-auth.js";
+import { activities, people } from "../db/schema.js";
+import { demoActivities, demoPeople } from "./demo-data.js";
+import { eq } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 
@@ -134,6 +139,123 @@ app.get("/api/auth/logout", async (c) => {
   );
 
   return c.json({ success: true });
+});
+
+async function requireEditor(headers: Headers) {
+  const user = await authenticateLocalRequest(headers);
+  if (!user || (user.role !== "owner" && user.role !== "admin")) return null;
+  return user;
+}
+
+app.get("/api/admin/activity/save", async (c) => {
+  const user = await requireEditor(c.req.raw.headers);
+  if (!user) return c.json({ error: "请先登录后台" }, 401);
+
+  const id = Number(c.req.query("id") || 0);
+  const title = String(c.req.query("title") || "").trim();
+  const date = String(c.req.query("date") || "").trim();
+  const participants = String(c.req.query("participants") || "");
+  const summary = String(c.req.query("summary") || "");
+  const description = String(c.req.query("description") || "");
+
+  if (!title || !date) return c.json({ error: "活动标题和日期不能为空" }, 400);
+
+  if (!env.databaseUrl) {
+    if (id > 0) {
+      const activity = demoActivities.find((item) => item.id === id);
+      if (!activity) return c.json({ error: "活动不存在" }, 404);
+      Object.assign(activity, {
+        title,
+        date,
+        participants,
+        summary,
+        description,
+        updatedAt: new Date(),
+      });
+      return c.json({ success: true, id });
+    }
+
+    const nextId = Math.max(0, ...demoActivities.map((item) => item.id)) + 1;
+    demoActivities.unshift({
+      id: nextId,
+      title,
+      date,
+      participants,
+      summary,
+      description,
+      images: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    return c.json({ success: true, id: nextId });
+  }
+
+  const db = getDb();
+  if (id > 0) {
+    await db
+      .update(activities)
+      .set({ title, date, participants, summary, description })
+      .where(eq(activities.id, id));
+    return c.json({ success: true, id });
+  }
+
+  const result = await db
+    .insert(activities)
+    .values({ title, date, participants, summary, description, images: null });
+  return c.json({ success: true, id: Number(result[0].insertId) });
+});
+
+app.get("/api/admin/person/save", async (c) => {
+  const user = await requireEditor(c.req.raw.headers);
+  if (!user) return c.json({ error: "请先登录后台" }, 401);
+
+  const id = Number(c.req.query("id") || 0);
+  const name = String(c.req.query("name") || "").trim();
+  const bio = String(c.req.query("bio") || "");
+  const skills = String(c.req.query("skills") || "");
+  const contact = String(c.req.query("contact") || "");
+
+  if (!name) return c.json({ error: "人员姓名不能为空" }, 400);
+
+  if (!env.databaseUrl) {
+    if (id > 0) {
+      const person = demoPeople.find((item) => item.id === id);
+      if (!person) return c.json({ error: "人员不存在" }, 404);
+      Object.assign(person, {
+        name,
+        bio,
+        skills,
+        contact,
+        updatedAt: new Date(),
+      });
+      return c.json({ success: true, id });
+    }
+
+    const nextId = Math.max(0, ...demoPeople.map((item) => item.id)) + 1;
+    demoPeople.unshift({
+      id: nextId,
+      name,
+      bio,
+      skills,
+      contact,
+      avatar: "",
+      images: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    return c.json({ success: true, id: nextId });
+  }
+
+  const db = getDb();
+  if (id > 0) {
+    await db.update(people).set({ name, bio, skills, contact }).where(eq(people.id, id));
+    return c.json({ success: true, id });
+  }
+
+  const result = await db
+    .insert(people)
+    .values({ name, bio, skills, contact, avatar: null, images: null });
+  return c.json({ success: true, id: Number(result[0].insertId) });
 });
 
 // Serve static files from public directory
