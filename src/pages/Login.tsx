@@ -4,13 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/providers/trpc-client";
-import { Compass, Lock, UserRound } from "lucide-react";
+import { Compass, Lock, Mail, ShieldCheck } from "lucide-react";
+
+const HUMAN_CODE = "CATCAMEL";
 
 export default function Login() {
   const navigate = useNavigate();
   const utils = trpc.useUtils();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [humanCode, setHumanCode] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   const loginMutation = trpc.auth.login.useMutation({
@@ -18,15 +21,30 @@ export default function Login() {
       await utils.invalidate();
       navigate("/admin");
     },
-    onError: () => {
-      setErrorMessage("账号或密码不正确，请检查后重试。");
+    onError: (error) => {
+      setErrorMessage(error.message || "登录失败，请检查账号、密码和真人验证。");
     },
   });
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage("");
-    loginMutation.mutate({ username, password });
+
+    if (!email.includes("@")) {
+      setErrorMessage("请输入邮箱格式的账号。");
+      return;
+    }
+
+    if (humanCode.trim().toUpperCase() !== HUMAN_CODE) {
+      setErrorMessage("真人验证不正确，请输入 CATCAMEL。");
+      return;
+    }
+
+    loginMutation.mutate({
+      username: email.trim().toLowerCase(),
+      password,
+      humanCode,
+    });
   };
 
   return (
@@ -37,7 +55,7 @@ export default function Login() {
             <Compass className="h-8 w-8 text-[#C52A32]" />
           </div>
           <h1 className="mb-2 font-heading text-3xl">猫驼旅者客栈</h1>
-          <p className="font-body text-sm opacity-60">内容管理登录</p>
+          <p className="font-body text-sm text-black/60">内容管理登录</p>
         </div>
 
         <Card className="rounded-none border-2 border-black bg-white shadow-[4px_4px_0px_rgba(0,0,0,0.2)]">
@@ -47,15 +65,17 @@ export default function Login() {
           <CardContent className="pt-6">
             <form className="space-y-4" onSubmit={handleSubmit}>
               <label className="block">
-                <span className="mb-1 block font-ui text-sm">账号</span>
+                <span className="mb-1 block font-ui text-sm">邮箱账号</span>
                 <div className="relative">
-                  <UserRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/50" />
                   <Input
-                    value={username}
-                    onChange={(event) => setUsername(event.target.value)}
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
                     className="min-h-12 rounded-none border-2 border-black bg-[#F8F4EC] pl-9"
                     autoComplete="username"
-                    placeholder="请输入账号"
+                    placeholder="请输入邮箱账号"
+                    required
                   />
                 </div>
               </label>
@@ -63,7 +83,7 @@ export default function Login() {
               <label className="block">
                 <span className="mb-1 block font-ui text-sm">密码</span>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/50" />
                   <Input
                     type="password"
                     value={password}
@@ -71,7 +91,28 @@ export default function Login() {
                     className="min-h-12 rounded-none border-2 border-black bg-[#F8F4EC] pl-9"
                     autoComplete="current-password"
                     placeholder="请输入密码"
+                    required
                   />
+                </div>
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block font-ui text-sm">真人验证</span>
+                <div className="grid grid-cols-[1fr_auto] gap-2">
+                  <div className="relative">
+                    <ShieldCheck className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/50" />
+                    <Input
+                      value={humanCode}
+                      onChange={(event) => setHumanCode(event.target.value)}
+                      className="min-h-12 rounded-none border-2 border-black bg-[#F8F4EC] pl-9 uppercase"
+                      autoComplete="off"
+                      placeholder="输入右侧字符"
+                      required
+                    />
+                  </div>
+                  <div className="flex min-h-12 items-center border-2 border-black bg-[#F3C84B] px-3 font-ui text-sm font-bold tracking-[0.18em]">
+                    {HUMAN_CODE}
+                  </div>
                 </div>
               </label>
 
@@ -90,8 +131,8 @@ export default function Login() {
               </Button>
             </form>
 
-            <div className="mt-5 border-t border-black/10 pt-4 font-body text-xs leading-relaxed opacity-55">
-              负责人可新增、编辑、删除全部内容；管理员只能新增和编辑内容；未登录用户只能浏览展示页面。
+            <div className="mt-5 border-t border-black/10 pt-4 font-body text-xs leading-relaxed text-black/55">
+              负责人可新增、编辑、删除全部内容；操作员只能新增和编辑内容；未登录用户只能浏览展示页面。
             </div>
           </CardContent>
         </Card>

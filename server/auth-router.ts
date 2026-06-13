@@ -6,15 +6,25 @@ import { getSessionCookieOptions } from "./lib/cookies.js";
 import { createRouter, authedQuery, publicQuery } from "./middleware.js";
 import { signLocalSession, verifyCredentials } from "./local-auth.js";
 
+const HUMAN_VERIFICATION_CODE = "catcamel";
+
 export const authRouter = createRouter({
   login: publicQuery
     .input(
       z.object({
-        username: z.string().min(1),
+        username: z.string().trim().toLowerCase().email(),
         password: z.string().min(1),
+        humanCode: z.string().min(1),
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      if (input.humanCode.trim().toLowerCase() !== HUMAN_VERIFICATION_CODE) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "真人验证不正确，请重新输入",
+        });
+      }
+
       const user = verifyCredentials(input.username, input.password);
       if (!user) {
         throw new TRPCError({

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { TRPCError } from "@trpc/server";
 import { appRouter } from "./router.js";
 import type { AppUser } from "./local-auth.js";
 
@@ -18,11 +19,35 @@ describe("appRouter", () => {
     expect(typeof result.ts).toBe("number");
   });
 
+  it("logs in with an email account and human verification", async () => {
+    const result = await caller().auth.login({
+      username: "1205268345@qq.com",
+      password: "awdxssklkl123",
+      humanCode: "CATCAMEL",
+    });
+
+    expect(result).toMatchObject({
+      username: "1205268345@qq.com",
+      name: "客栈负责人",
+      role: "owner",
+    });
+  });
+
+  it("rejects login when human verification is missing", async () => {
+    await expect(
+      caller().auth.login({
+        username: "1205268345@qq.com",
+        password: "awdxssklkl123",
+        humanCode: "wrong",
+      }),
+    ).rejects.toBeInstanceOf(TRPCError);
+  });
+
   it("allows admins to create but not delete", async () => {
     const adminCaller = caller({
       id: 2,
-      username: "admin1",
-      name: "内容管理员一",
+      username: "wxw@catcamel.com",
+      name: "WXW",
       role: "admin",
     });
 
@@ -40,7 +65,7 @@ describe("appRouter", () => {
   it("allows the owner to delete", async () => {
     const ownerCaller = caller({
       id: 1,
-      username: "owner",
+      username: "1205268345@qq.com",
       name: "客栈负责人",
       role: "owner",
     });
