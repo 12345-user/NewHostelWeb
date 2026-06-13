@@ -3,6 +3,8 @@ import { TRPCError } from "@trpc/server";
 import { appRouter } from "./router.js";
 import type { AppUser } from "./local-auth.js";
 
+process.env.OWNER_LOGIN_PASSWORD = "owner-test-password";
+
 function caller(user?: AppUser) {
   return appRouter.createCaller({
     req: new Request("http://localhost/api/trpc"),
@@ -22,7 +24,7 @@ describe("appRouter", () => {
   it("logs in with an email account and human verification", async () => {
     const result = await caller().auth.login({
       username: "1205268345@qq.com",
-      password: "awdxssklkl123",
+      password: "owner-test-password",
       humanCode: "CATCAMEL",
     });
 
@@ -37,7 +39,7 @@ describe("appRouter", () => {
     await expect(
       caller().auth.login({
         username: "1205268345@qq.com",
-        password: "awdxssklkl123",
+        password: "owner-test-password",
         humanCode: "wrong",
       }),
     ).rejects.toBeInstanceOf(TRPCError);

@@ -13,35 +13,35 @@ export type AppUser = {
 };
 
 type Account = AppUser & {
-  password: string;
+  passwordEnv: string;
 };
 
 const accounts: Account[] = [
   {
     id: 1,
     username: "1205268345@qq.com",
-    password: "awdxssklkl123",
+    passwordEnv: "OWNER_LOGIN_PASSWORD",
     name: "客栈负责人",
     role: "owner",
   },
   {
     id: 2,
     username: "wxw@catcamel.com",
-    password: "109901aa109901",
+    passwordEnv: "WXW_LOGIN_PASSWORD",
     name: "WXW",
     role: "admin",
   },
   {
     id: 3,
     username: "lyh@catcamel.com",
-    password: "109901aa109901",
+    passwordEnv: "LYH_LOGIN_PASSWORD",
     name: "LYH",
     role: "admin",
   },
   {
     id: 4,
     username: "hyf@catcamel.com",
-    password: "109901aa109901",
+    passwordEnv: "HYF_LOGIN_PASSWORD",
     name: "HYF",
     role: "admin",
   },
@@ -55,6 +55,10 @@ function getAuthSecret() {
   );
 }
 
+function getAccountPassword(account: Account) {
+  return process.env[account.passwordEnv] ?? "";
+}
+
 function toPublicUser(account: Account): AppUser {
   return {
     id: account.id,
@@ -66,11 +70,13 @@ function toPublicUser(account: Account): AppUser {
 
 export function verifyCredentials(username: string, password: string) {
   const normalizedUsername = username.trim().toLowerCase();
-  const account = accounts.find(
-    (item) =>
-      item.username === normalizedUsername && item.password === password,
-  );
-  return account ? toPublicUser(account) : null;
+  const account = accounts.find((item) => item.username === normalizedUsername);
+  if (!account) return null;
+
+  const expectedPassword = getAccountPassword(account);
+  if (!expectedPassword || expectedPassword !== password) return null;
+
+  return toPublicUser(account);
 }
 
 export async function signLocalSession(user: AppUser) {
